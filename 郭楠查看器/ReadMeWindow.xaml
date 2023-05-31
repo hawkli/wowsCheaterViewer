@@ -1,0 +1,36 @@
+﻿<Window x:Class="郭楠查看器.ReadMeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:郭楠查看器"
+        mc:Ignorable="d"
+        Title="使用与免责声明" Height="220" Width="550">
+    <Grid>
+        <TextBlock TextWrapping="Wrap">
+            <Run/>
+            <Run Text="1、自动监控对局的功能需要先设定路径"/>
+            <Run Text="&#13;"/>
+            <Run Text="2、本程序目前仅支持国服"/>
+            <Run Text="&#13;"/>
+            <Run Text="3、本程序数据来源于国服官方接口与yuyuko机器人接口"/>
+            <Run Text="&#13;"/>
+            <Run Text="4、yuyuko机器人接口负载较大，调用时读取较慢，请耐心等待"/>
+            <Run Text="&#13;"/>
+            <Run Text="5、关于[封禁匹配]列的说明："/>
+            <Run Text="&#13;"/>
+            <Run Text="  5.1、封禁匹配数据源来源于yuyuko机器人接口"/>
+            <Run Text="&#13;"/>
+            <Run Text="  5.2、匹配的原理是检测yuyuko机器人收集过的玩家id是否与封禁名单匹配上"/>
+            <Run Text="&#13;"/>
+            <Run Text="  5.3、yuyuko机器人并未收集国服所有玩家信息，所以匹配数量即使为1也不能说明该玩家被封禁过"/>
+            <Run Text="&#13;"/>
+            <Run Text=""/>
+            <Run Text="&#13;"/>
+            <Hyperlink NavigateUri="https://github.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">*在github中查看</Hyperlink>
+            <Run Text="&#13;"/>
+            <Hyperlink NavigateUri="https://afdian.net/a/JustOneSummer" RequestNavigate="Hyperlink_Click">*前往赞助yuyuko作者</Hyperlink>
+            <Run Text="&#13;"/>
+        </TextBlock>
+    </Grid>
+</Window>

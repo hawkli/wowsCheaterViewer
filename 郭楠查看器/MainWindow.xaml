@@ -1,0 +1,210 @@
+﻿<Window x:Class="郭楠查看器.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:郭楠查看器"
+        mc:Ignorable="d"
+        Title="郭楠查看器" Height="600" Width="1000">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        
+        
+        <!--功能区-->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <!--左侧显示日志-->
+            <TextBlock Grid.Row="1" Grid.Column="0" TextWrapping="Wrap">
+                <Run Text="log:"/>
+                <Run x:Name="logText" />
+            </TextBlock>
+            
+            <!--右侧放按钮和当前游戏路径-->
+            <Grid Grid.Column="1" >
+
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <!--右侧第一行放按钮-->
+                <WrapPanel  Grid.Row="0" >
+                    <Button Click="resetRootPathEvent" Width="100" Height="25">重设游戏路径</Button>
+                    <Button x:Name="reflashBtn" Click="reflashEvent" Width="100" Height="25">刷新对局信息</Button>
+                    <Button x:Name="readRepBtn" Click="readRepEvent" Width="100" Height="25">读取rep文件</Button>
+                    <Button Click="readmeEvent" Width="100" Height="25">使用与免责声明</Button>
+                </WrapPanel>
+                <!--右侧第二行放路径-->
+                <TextBlock Grid.Row="1">
+                    <Run Text="当前游戏根路径:"/>
+                    <Run x:Name="rootPath" />
+                </TextBlock>
+            </Grid>
+            
+
+        </Grid>
+
+        <!--数据展示区-->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <!--队友-->
+            <DataGrid x:Name="team1" CanUserAddRows="False" Grid.Column="0" AutoGenerateColumns="False">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="玩家信息" Width="200">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run />
+                                    <Run Text="{Binding clanName}" Foreground="{Binding clanColor}"/>
+                                    <Run Text="{Binding name}"/>
+                                    <Run Text="&#13;"/>
+                                    <Run Text="{Binding shipName}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="单船战绩" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run />
+                                    <Run Text="{Binding winRate_ship}"/>
+                                    <Run Text="&#13;"/>
+                                    <Run Text="{Binding battleCount_ship}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="随机战绩" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run />
+                                    <Run Text="{Binding winRate_pvp}"/>
+                                    <Run Text="&#13;"/>
+                                    <Run Text="{Binding battleCount_pvp}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="排位战绩" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run />
+                                    <Run Text="{Binding winRate_rank}"/>
+                                    <Run Text="&#13;"/>
+                                    <Run Text="{Binding battleCount_rank}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="封禁匹配" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Background="{Binding banColor}" Text="{Binding banMatch}">
+                                    <TextBlock.ToolTip>
+                                        <TextBlock Text="{Binding banMatch_fullStr}"/>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="标记" Width="*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="markMessageChangedEvent"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!--对手-->
+            <DataGrid x:Name="team2" AutoGenerateColumns="False" CanUserAddRows="False" Grid.Column="1">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="玩家信息" Width="200">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run />
+                                    <Run Text="{Binding clanName}" Foreground="{Binding clanColor}"/>
+                                    <Run Text="{Binding name}"/>
+                                    <Run Text="&#13;"/>
+                                    <Run Text="{Binding shipName}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="单船战绩" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run />
+                                    <Run Text="{Binding winRate_ship}"/>
+                                    <Run Text="&#13;"/>
+                                    <Run Text="{Binding battleCount_ship}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="随机战绩" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run />
+                                    <Run Text="{Binding winRate_pvp}"/>
+                                    <Run Text="&#13;"/>
+                                    <Run Text="{Binding battleCount_pvp}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="排位战绩" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run />
+                                    <Run Text="{Binding winRate_rank}"/>
+                                    <Run Text="&#13;"/>
+                                    <Run Text="{Binding battleCount_rank}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="封禁匹配" Width="60">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Background="{Binding banColor}" Text="{Binding banMatch}">
+                                    <TextBlock.ToolTip>
+                                        <TextBlock Text="{Binding banMatch_fullStr}"/>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="标记" Width="*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="markMessageChangedEvent"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+        </Grid>
+    </Grid>
+</Window>
