@@ -14,18 +14,10 @@ namespace 郭楠查看器
     public partial class apiClient
     {
 
-        private HttpClient HttpClient = new HttpClient();
-
-        public void logWrite(string message)//写入日志文件
-        {
-            using (FileStream fs = new FileStream("log.log", FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write))
-            {
-                fs.Seek(0, SeekOrigin.End);
-                fs.Write(Encoding.Default.GetBytes((string.Format("{0} {1}" + Environment.NewLine, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), message))));
-            }
-        }
+        Logger Logger = Logger.Instance;
         private JObject GetClient(string url)//调用get接口，需要url
         {
+            HttpClient HttpClient = new HttpClient();
             JObject apiResult = null;
             try
             {
@@ -49,12 +41,13 @@ namespace 郭楠查看器
                 if (!success)
                     throw new Exception("Api Connection Failed. Code:" + code.ToString() + ";Result:" + apiResult_str);
             }
-            catch (Exception ex) { logWrite(String.Format("get调用失败，url:{0}；失败原因：{1}", url, ex.Message)); }
+            catch (Exception ex) { Logger.logWrite(String.Format("get调用失败，url:{0}；失败原因：{1}", url, ex.Message)); }
 
             return apiResult;
         }
         private JObject PostClient(string url, Dictionary<string, string> contantDictionary)//调用post接口，需要url和jsonBody
         {
+            HttpClient HttpClient = new HttpClient();
             JObject apiResult = null;
             try
             {
@@ -76,7 +69,7 @@ namespace 郭楠查看器
                 if (!success)
                     throw new Exception("Api Connection Failed. Code:" + code.ToString() + ";Result:" + apiResult.ToString());
             }
-            catch (Exception ex) { logWrite(String.Format("post调用失败，url:{0}；失败原因：{1}",url,ex.Message)); }
+            catch (Exception ex) { Logger.logWrite(String.Format("post调用失败，url:{0}；失败原因：{1}",url,ex.Message)); }
 
             return apiResult;
         }

@@ -42,6 +42,7 @@
                     <Button x:Name="readRepBtn" Click="readRepEvent" Width="100" Height="25">读取rep文件</Button>
                     <Button Click="readmeEvent" Width="100" Height="25">使用与免责声明</Button>
                     <!--<Button Click="debugPlayerEvent" Width="30" Height="25">debug</Button>-->
+                    
                 </WrapPanel>
                 <!--右侧第二行放路径-->
                 <TextBlock Grid.Row="1">
@@ -66,13 +67,20 @@
                     <DataGridTemplateColumn Header="玩家信息" Width="200">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="{Binding playerPrColor}" />
+                                    <TextBlock Grid.Column="1">
                                     <Run />
                                     <Run Text="{Binding clanName}" Foreground="{Binding clanColor}"/>
                                     <Run Text="{Binding name}"/>
                                     <Run Text="&#13;"/>
                                     <Run Text="{Binding shipName}"/>
-                                </TextBlock>
+                                    </TextBlock>
+                                </Grid>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -139,13 +147,20 @@
                     <DataGridTemplateColumn Header="玩家信息" Width="200">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="{Binding playerPrColor}" />
+                                    <TextBlock Grid.Column="1">
                                     <Run />
                                     <Run Text="{Binding clanName}" Foreground="{Binding clanColor}"/>
                                     <Run Text="{Binding name}"/>
                                     <Run Text="&#13;"/>
                                     <Run Text="{Binding shipName}"/>
-                                </TextBlock>
+                                    </TextBlock>
+                                </Grid>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

@@ -37,17 +37,17 @@ namespace 郭楠查看器
     {
 
         public JObject configJson;
-        public string logPath;
-        private FileSystemWatcher watcher = new FileSystemWatcher();
+        public string logPath = "log.log";
         private JObject markJson;
+        private FileSystemWatcher watcher = new FileSystemWatcher();
         private apiClient apiClient = new apiClient();
+        Logger Logger = Logger.Instance;
 
         public MainWindow()
         {
             InitializeComponent();
 
             init();
-            
             watchRepFolder();
 
         }
@@ -60,7 +60,6 @@ namespace 郭楠查看器
                 { "wowsRootPath", null } ,
                 { "mark",markJson }
             });
-            logPath = "log.log";
             if (File.Exists(logPath))
                 File.Delete(logPath);
 
@@ -83,16 +82,9 @@ namespace 郭楠查看器
         private void logShow(string message)//显示日志
         {
             Dispatcher.Invoke(() => logText.Text = message);
-            logWrite(message);
+            Logger.logWrite(message);
         }
-        public void logWrite(string message)//写入日志文件
-        {
-            using (FileStream fs = new FileStream(logPath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write))
-            {
-                fs.Seek(0, SeekOrigin.End);
-                fs.Write(Encoding.Default.GetBytes((string.Format("{0} {1}"+Environment.NewLine, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), message))));
-            }
-        }
+
         private void readmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
         {
             ReadMeWindow window = new ReadMeWindow();
@@ -142,11 +134,11 @@ namespace 郭楠查看器
         }
         private void debugPlayerEvent(object sender, RoutedEventArgs e)//使用与免责声明
         {
-            JToken item = JToken.Parse("{\r\n  \"shipId\": 4282267344,\r\n  \"relation\": 2,\r\n  \"id\": 161745,\r\n  \"name\": \"萌萌哒学姐\"\r\n}");
+            JToken item = JToken.Parse("{\r\n  \"shipId\": 3762173936,\r\n  \"relation\": 2,\r\n  \"id\": 537059188,\r\n  \"name\": \"南西衫丶\"\r\n}");
             playerInfo playerInfo = parsePlayerJson(item);
             PropertyInfo[] properties = playerInfo.GetType().GetProperties();
             for (int i= 0; i < properties.Count(); i++)
-                logWrite(string.Format("{0,-20}",properties[i].Name)+ ":"+ properties[i].GetValue(playerInfo));
+                Logger.logWrite(string.Format("{0,-20}",properties[i].Name)+ ":"+ properties[i].GetValue(playerInfo));
             logShow("解析完成，请前往日志文件查看");
         }
         private void resetRootPath()//重设路径
@@ -217,12 +209,7 @@ namespace 郭楠查看器
                 watcher.Created += (s, e) => Dispatcher.Invoke(() =>
                 {
                     logShow("检测到对局开始，正在读取");
-                    //Stopwatch sw = new Stopwatch();
-                    //sw.Start();
                     teamView(readTempJson());
-                    //sw.Stop();
-                    //logShow(sw.ElapsedMilliseconds.ToString());
-                    //sw.Reset();
                 });
 
                 watcher.Deleted += (s, e) => Dispatcher.Invoke(() =>
@@ -291,7 +278,9 @@ namespace 郭楠查看器
                             reflashBtn.IsEnabled = false;
                             readRepBtn.IsEnabled = false;
                         });
-
+                        Stopwatch sw = new Stopwatch();
+                        sw.Start();
+                        
                         List<playerInfo> playerInfo_team1 = new List<playerInfo>();
                         List<playerInfo> playerInfo_team2 = new List<playerInfo>();
                         List<string> failedList = new List<string>();
@@ -315,10 +304,10 @@ namespace 郭楠查看器
                                 else
                                     playerInfo_team2.Add(playerInfo);
                             }
-                            catch
+                            catch(Exception ex)
                             {
                                 failedList.Add(playerName);
-                                logWrite("玩家信息读取失败："+item.ToString());
+                                Logger.logWrite("玩家信息读取失败，"+ex.Message+Environment.NewLine+item.ToString());
                             }
 
                         }
@@ -330,7 +319,9 @@ namespace 郭楠查看器
                             team2.ItemsSource = playerInfo_team2.OrderByDescending(i => i.shipSort);
                         });
 
-                        logShow("已成功读取对局文件" + (failedList.Count == 0 ? "" : "，以下玩家读取失败：" + string.Join(",", failedList)));
+                        sw.Stop();
+                        logShow("已成功读取对局文件，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒" + (failedList.Count == 0 ? "" : "，以下玩家读取失败：" + string.Join(",", failedList)));
+                        sw.Reset();
                     }
                     catch (Exception ex)
                     {
@@ -384,7 +375,7 @@ namespace 郭楠查看器
                     {
                         //解析ban信息
                         playerInfo.banMatch_fullStr = result_getplayerBanInfo_yuyuko["data"]["voList"].ToString();
-                        playerInfo.banColor = "Write";
+                        playerInfo.banColor = "White";
                         List<Int32> banMatch_matchCountList = new List<Int32>();
                         foreach (JToken banInfo in result_getplayerBanInfo_yuyuko["data"]["voList"] as JArray) //将每一项的封禁匹配数加到list里
                             banMatch_matchCountList.Add(Convert.ToInt32(banInfo["banNameNamesake"]));
@@ -406,7 +397,7 @@ namespace 郭楠查看器
                             playerInfo.winRate_pvp = result_getplayerInfo_yuyuko["data"]["pvp"]["wins"].ToString() + "%";
                             playerInfo.battleCount_rank = result_getplayerInfo_yuyuko["data"]["rankSolo"]["battles"].ToString();
                             playerInfo.winRate_rank = result_getplayerInfo_yuyuko["data"]["rankSolo"]["wins"].ToString() + "%";
-
+                            playerInfo.playerPrColor = result_getplayerInfo_yuyuko["data"]["pr"]["color"].ToString();
                             //解析军团信息
                             if (!string.IsNullOrEmpty(result_getplayerInfo_yuyuko["data"]["clanInfo"]["tag"].ToString()))
                             {
@@ -560,6 +551,7 @@ namespace 郭楠查看器
     {
         public string name { get; set; }
         public string playerId { get; set; }
+        public string playerPrColor { get; set; }
         public string shipId { get; set; }
         public string clanName { get; set; }
         public string clanColor { get; set; }
