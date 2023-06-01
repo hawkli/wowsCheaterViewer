@@ -41,6 +41,7 @@
                     <Button x:Name="reflashBtn" Click="reflashEvent" Width="100" Height="25">刷新对局信息</Button>
                     <Button x:Name="readRepBtn" Click="readRepEvent" Width="100" Height="25">读取rep文件</Button>
                     <Button Click="readmeEvent" Width="100" Height="25">使用与免责声明</Button>
+                    <!--<Button Click="debugPlayerEvent" Width="30" Height="25">debug</Button>-->
                 </WrapPanel>
                 <!--右侧第二行放路径-->
                 <TextBlock Grid.Row="1">
