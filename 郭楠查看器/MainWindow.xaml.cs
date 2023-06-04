@@ -134,7 +134,7 @@ namespace 郭楠查看器
         }
         private void debugPlayerEvent(object sender, RoutedEventArgs e)//使用与免责声明
         {
-            JToken item = JToken.Parse("{\r\n  \"shipId\": 3762173936,\r\n  \"relation\": 2,\r\n  \"id\": 537059188,\r\n  \"name\": \"南西衫丶\"\r\n}");
+            JToken item = JToken.Parse("{\r\n  \"shipId\": 3761190608,\r\n  \"relation\": 2,\r\n  \"id\": 537303632,\r\n  \"name\": \"猫猫不流泪 啤酒喝到醉\"\r\n}");
             playerInfo playerInfo = parsePlayerJson(item);
             PropertyInfo[] properties = playerInfo.GetType().GetProperties();
             for (int i= 0; i < properties.Count(); i++)

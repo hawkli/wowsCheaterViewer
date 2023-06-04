@@ -76,7 +76,16 @@ namespace 郭楠查看器
 
         public JObject GetPlayerId(string playerName)//通过玩家名称获取玩家id
         {
-            string url = "https://vortex.wowsgame.cn/api/accounts/search/autocomplete/" + HttpUtility.UrlEncode(playerName).Replace("+"," ");
+            string url = "https://vortex.wowsgame.cn/api/accounts/search/autocomplete/" + 
+                playerName.Replace("%", "%25").//url编码转译，先转百分号
+                Replace("+", "%2B").
+                Replace("/", "%2F").
+                Replace("=", "%3D").
+                Replace("?", "%3F").
+                Replace(" ", "%20").
+                Replace("#", "%23").
+                Replace("$", "%24").
+                Replace("&", "%26");
             return GetClient(url);
         }
         public JObject GetPlayerInfo_official(string playerId)//通过玩家id获取官方的玩家信息
