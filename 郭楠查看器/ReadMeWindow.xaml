@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:郭楠查看器"
         mc:Ignorable="d"
-        Title="使用与免责声明" Height="220" Width="550">
+        Title="使用与免责声明" Height="250" Width="550">
     <Grid>
         <TextBlock TextWrapping="Wrap">
             <Run/>
@@ -27,9 +27,17 @@
             <Run Text="&#13;"/>
             <Run Text=""/>
             <Run Text="&#13;"/>
-            <Hyperlink NavigateUri="https://github.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">*在github中查看</Hyperlink>
+            <Hyperlink NavigateUri="https://github.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">
+                *在github中查看
+            </Hyperlink>
             <Run Text="&#13;"/>
-            <Hyperlink NavigateUri="https://afdian.net/a/JustOneSummer" RequestNavigate="Hyperlink_Click">*前往赞助yuyuko作者</Hyperlink>
+            <Hyperlink NavigateUri="https://gitee.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">
+                *在gitee中查看
+            </Hyperlink>
+            <Run Text="&#13;"/>
+            <Hyperlink NavigateUri="https://afdian.net/a/JustOneSummer" RequestNavigate="Hyperlink_Click">
+                *前往赞助yuyuko作者
+            </Hyperlink>
             <Run Text="&#13;"/>
         </TextBlock>
     </Grid>

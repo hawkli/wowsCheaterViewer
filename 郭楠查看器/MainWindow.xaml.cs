@@ -27,6 +27,10 @@ using System.Windows.Threading;
 using System.Runtime.CompilerServices;
 using Microsoft.WindowsAPICodePack.Shell.Interop;
 using System.Reflection;
+using System.Net;
+using System.Security.Policy;
+using System.IO.Compression;
+using Path = System.IO.Path;
 
 namespace 郭楠查看器
 {
@@ -35,13 +39,13 @@ namespace 郭楠查看器
     /// </summary>
     public partial class MainWindow : Window
     {
-
+        Logger Logger = Logger.Instance;
         public JObject configJson;
-        public string logPath = "log.log";
         private JObject markJson;
         private FileSystemWatcher watcher = new FileSystemWatcher();
         private apiClient apiClient = new apiClient();
-        Logger Logger = Logger.Instance;
+        private string visionTag = "2023.06.06";
+        private string updateFolderPath = ".update";
 
         public MainWindow()
         {
@@ -49,7 +53,6 @@ namespace 郭楠查看器
 
             init();
             watchRepFolder();
-
         }
 
         private void init()//初始化
@@ -60,8 +63,14 @@ namespace 郭楠查看器
                 { "wowsRootPath", null } ,
                 { "mark",markJson }
             });
-            if (File.Exists(logPath))
-                File.Delete(logPath);
+            //如果不存在，创建日志文件夹
+            string logFolder = "log";
+            if (!Directory.Exists(logFolder))
+                Directory.CreateDirectory(logFolder);
+            //删除非当日的日志文件
+            foreach (string logFile in Directory.GetFiles(logFolder))
+                if (!Path.GetFileName(logFile).StartsWith(DateTime.Now.ToString("yyyy-MM-dd")))
+                    File.Delete(logFile);
 
             if (File.Exists("config.json"))
             {
@@ -71,11 +80,80 @@ namespace 郭楠查看器
                 else
                 {
                     configJson["mark"] = markJson;
-                    updataConfigFile();
+                    updateConfigFile();
                 }
 
                 rootPath.Text = configJson["wowsRootPath"].ToString();
                 logShow("已读取配置文件");
+            }
+
+            checkUpdate();
+        }
+
+        private void checkUpdate()//检测客户端升级
+        {
+            if (Directory.Exists(updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
+                Directory.Delete(updateFolderPath, true);
+            string releaseCheckUrl = "https://gitee.com/api/v5/repos/bbaoqaq/wowsCheaterViewer/releases/latest";
+            JObject releaseCheckResurnJson = apiClient.GetClient(releaseCheckUrl);
+            try
+            {
+                if (releaseCheckResurnJson["tag_name"].ToString() == visionTag)
+                {
+                    Logger.logWrite("无需更新");
+                }
+                else
+                {
+                    Logger.logWrite("需要更新");
+                    string updatalog = releaseCheckResurnJson["body"].ToString();
+                    if (System.Windows.MessageBox.Show("检查到新版本，是否进行更新"+Environment.NewLine+"更新内容：" + Environment.NewLine + updatalog, "提示：", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
+                    {
+                        Logger.logWrite("确认更新");
+                        //确认能够转换GBK编码
+                        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                        string updateZipFilePath = Path.Combine(updateFolderPath, releaseCheckResurnJson["assets"][0]["name"].ToString());
+                        string downloadUrl = releaseCheckResurnJson["assets"][0]["browser_download_url"].ToString();
+                        Directory.CreateDirectory(updateFolderPath);
+                        //下载
+                        using (var web = new WebClient()){web.DownloadFile(downloadUrl, updateZipFilePath); }
+                        Logger.logWrite("下载完成");
+                        //解压
+                        ZipFile.ExtractToDirectory(updateZipFilePath, updateFolderPath, Encoding.GetEncoding("GBK"));
+                        File.Delete(updateZipFilePath);
+                        Logger.logWrite("解压完成");
+                        //生成更新批处理脚本
+                        string updateBatPath = Path.Combine(updateFolderPath,"update.bat");
+                        string copyFromFolderPath = Directory.GetDirectories(updateFolderPath).First();//取解压后的根文件夹
+                        string copyToFolderPath = Environment.CurrentDirectory;//取当前文件夹
+                        string processName = Assembly.GetExecutingAssembly().GetName().Name;//取项目名称，也是进程名称
+                        string batStr = @"chcp 65001"+ Environment.NewLine +//用中文编码
+                            "taskkill /f /im "+ processName + ".exe "+ Environment.NewLine +//结束项目进程
+                            "xcopy " + copyFromFolderPath.Replace(" ", @""" """) + " " + copyToFolderPath.Replace(" ", @""" """) + " /e /y "+Environment.NewLine+//覆盖所有需要更新的文件
+                            "start " + Path.Combine(copyToFolderPath, processName+".exe").Replace(" ", @""" """);//重启进程
+                        File.Delete(updateBatPath);
+                        StreamWriter sw = new StreamWriter(updateBatPath);
+                        sw.Write(batStr, Encoding.GetEncoding("GBK"));
+                        sw.Close();
+                        Logger.logWrite("即将更新");
+                        //启动批处理脚本
+                        Process Process = new Process();
+                        Process.StartInfo.WorkingDirectory = copyToFolderPath;
+                        Process.StartInfo.FileName = updateBatPath;
+                        Process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                        Process.Start();
+                        Process.WaitForExit();
+                        //如果没有正常启动则报错
+                        throw new Exception("批处理脚本启动失败");
+                    }
+                    else
+                    {
+                        Logger.logWrite("用户取消更新");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.logWrite("更新失败，"+ex.Message);
             }
         }
 
@@ -155,14 +233,14 @@ namespace 郭楠查看器
                 if (checkPath(newFolder))
                 {
                     configJson["wowsRootPath"] = newFolder;
-                    updataConfigFile();
+                    updateConfigFile();
                     logShow("重设路径成功");
                     rootPath.Text = newFolder;
                 }
 
             watchRepFolder();
         }
-        private void updataConfigFile()//更新配置文件
+        private void updateConfigFile()//更新配置文件
         {
             configJson["mark"] = markJson;
             StreamWriter sw = new StreamWriter("config.json");
@@ -299,6 +377,12 @@ namespace 郭楠查看器
                                 playerInfo = parsePlayerJson(item);
 
                                 //0和1是己方，2是敌方
+                                if (Convert.ToInt32(item["relation"]) == 0 && playerInfo.clanId == "7000004849")
+                                {
+                                    MessageBox.Show("此插件禁止[CV-山东]军团用户使用");
+                                    throw new Exception("黑名单用户");
+                                }
+                                    
                                 if (Convert.ToInt32(item["relation"]) == 1 || Convert.ToInt32(item["relation"]) == 0)
                                     playerInfo_team1.Add(playerInfo);
                                 else
@@ -306,6 +390,8 @@ namespace 郭楠查看器
                             }
                             catch(Exception ex)
                             {
+                                if (ex.Message.Contains("黑名单用户"))
+                                    throw ex;
                                 failedList.Add(playerName);
                                 Logger.logWrite("玩家信息读取失败，"+ex.Message+Environment.NewLine+item.ToString());
                             }
@@ -403,6 +489,7 @@ namespace 郭楠查看器
                             {
                                 playerInfo.clanName = "[" + result_getplayerInfo_yuyuko["data"]["clanInfo"]["tag"].ToString() + "]";
                                 playerInfo.clanColor = result_getplayerInfo_yuyuko["data"]["clanInfo"]["colorRgb"].ToString();
+                                playerInfo.clanId = result_getplayerInfo_yuyuko["data"]["clanInfo"]["clanId"].ToString();
                             }
                         }
                         else
@@ -437,6 +524,9 @@ namespace 郭楠查看器
                         playerInfo.markMessage = markJson[playerInfo.playerId].ToString();
                     }
                 }
+
+
+                
             );
 
             return playerInfo;
@@ -541,7 +631,7 @@ namespace 郭楠查看器
                 {
                     //config更新  {"mark":{"id":"123123"}
                     markJson[currentPlayerInfo.playerId] = currentPlayerInfo.markMessage;
-                    updataConfigFile();
+                    updateConfigFile();
                     logShow("已更新标记玩家：" + currentPlayerInfo.playerId + "，标记内容：" + currentPlayerInfo.markMessage);
                 }
         }
@@ -554,6 +644,7 @@ namespace 郭楠查看器
         public string playerPrColor { get; set; }
         public string shipId { get; set; }
         public string clanName { get; set; }
+        public string clanId { get; set; }
         public string clanColor { get; set; }
         public string shipName { get; set; }
         public int shipSort { get; set; }

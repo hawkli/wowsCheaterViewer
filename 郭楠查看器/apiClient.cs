@@ -15,7 +15,7 @@ namespace 郭楠查看器
     {
 
         Logger Logger = Logger.Instance;
-        private JObject GetClient(string url)//调用get接口，需要url
+        public JObject GetClient(string url)//调用get接口，需要url
         {
             HttpClient HttpClient = new HttpClient();
             JObject apiResult = null;
@@ -30,13 +30,13 @@ namespace 郭楠查看器
                 if (code != 200)
                     throw new Exception("Api Connection Failed. Code:" + code.ToString() + ";Result:" + apiResult_str);
 
-                Boolean success = false;
+                Boolean success = true;
                 if (apiResult.ContainsKey("code"))
-                    if (Convert.ToInt32(apiResult["code"]) == 200)
-                        success = true;
+                    if (Convert.ToInt32(apiResult["code"]) != 200)
+                        success = false;
                 if (apiResult.ContainsKey("status"))
-                    if (apiResult["status"].ToString() == "ok")
-                        success = true;
+                    if (apiResult["status"].ToString() != "ok")
+                        success = false;
 
                 if (!success)
                     throw new Exception("Api Connection Failed. Code:" + code.ToString() + ";Result:" + apiResult_str);
@@ -45,7 +45,7 @@ namespace 郭楠查看器
 
             return apiResult;
         }
-        private JObject PostClient(string url, Dictionary<string, string> contantDictionary)//调用post接口，需要url和jsonBody
+        public JObject PostClient(string url, Dictionary<string, string> contantDictionary)//调用post接口，需要url和jsonBody
         {
             HttpClient HttpClient = new HttpClient();
             JObject apiResult = null;
@@ -59,15 +59,16 @@ namespace 郭楠查看器
                 if (code != 200)
                     throw new Exception("Api Connection Failed. Code:" + code.ToString() + ";Result:" + apiResult.ToString());
 
-                Boolean success = false;
+                Boolean success = true;
                 if (apiResult.ContainsKey("code"))
-                    if (Convert.ToInt32(apiResult["code"]) == 200)
-                        success = true;
+                    if (Convert.ToInt32(apiResult["code"]) != 200)
+                        success = false;
                 if (apiResult.ContainsKey("status"))
-                    if (apiResult["status"].ToString() == "ok")
-                        success = true;
+                    if (apiResult["status"].ToString() != "ok")
+                        success = false;
+
                 if (!success)
-                    throw new Exception("Api Connection Failed. Code:" + code.ToString() + ";Result:" + apiResult.ToString());
+                    throw new Exception("Api Connection Failed. Code:" + code.ToString() + ";Result:" + apiResult_str);
             }
             catch (Exception ex) { Logger.logWrite(String.Format("post调用失败，url:{0}；失败原因：{1}",url,ex.Message)); }
 
@@ -76,16 +77,7 @@ namespace 郭楠查看器
 
         public JObject GetPlayerId(string playerName)//通过玩家名称获取玩家id
         {
-            string url = "https://vortex.wowsgame.cn/api/accounts/search/autocomplete/" + 
-                playerName.Replace("%", "%25").//url编码转译，先转百分号
-                Replace("+", "%2B").
-                Replace("/", "%2F").
-                Replace("=", "%3D").
-                Replace("?", "%3F").
-                Replace(" ", "%20").
-                Replace("#", "%23").
-                Replace("$", "%24").
-                Replace("&", "%26");
+            string url = "https://vortex.wowsgame.cn/api/accounts/search/autocomplete/" + Uri.EscapeDataString(playerName);
             return GetClient(url);
         }
         public JObject GetPlayerInfo_official(string playerId)//通过玩家id获取官方的玩家信息

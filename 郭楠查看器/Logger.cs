@@ -16,7 +16,7 @@ namespace 郭楠查看器
         public static Logger Instance => _instance.Value;
         private Logger()
         {
-            defaultLogFile = "log.log";
+            defaultLogFile = Path.Combine("log",DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff")+".log");
         }
         private static readonly object writerLock = new object();
         private string defaultLogFile;
