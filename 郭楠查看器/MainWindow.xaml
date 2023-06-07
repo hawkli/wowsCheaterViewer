@@ -75,7 +75,7 @@
                                     <Border Grid.Column="0" Background="{Binding playerPrColor}" />
                                     <TextBlock Grid.Column="1">
                                     <Run />
-                                    <Run Text="{Binding clanName}" Foreground="{Binding clanColor}"/>
+                                    <Run Text="{Binding clanTag}" Foreground="{Binding clanColor}"/>
                                     <Run Text="{Binding name}"/>
                                     <Run Text="&#13;"/>
                                     <Run Text="{Binding shipName}"/>
@@ -155,7 +155,7 @@
                                     <Border Grid.Column="0" Background="{Binding playerPrColor}" />
                                     <TextBlock Grid.Column="1">
                                     <Run />
-                                    <Run Text="{Binding clanName}" Foreground="{Binding clanColor}"/>
+                                    <Run Text="{Binding clanTag}" Foreground="{Binding clanColor}"/>
                                     <Run Text="{Binding name}"/>
                                     <Run Text="&#13;"/>
                                     <Run Text="{Binding shipName}"/>
@@ -214,7 +214,11 @@
                     <DataGridTemplateColumn Header="标记" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="markMessageChangedEvent"/>
+                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="markMessageChangedEvent">
+                                    <TextBox.ToolTip>
+                                        <TextBlock Text="{Binding lastMarkMessage}"/>
+                                    </TextBox.ToolTip>
+                                </TextBox>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

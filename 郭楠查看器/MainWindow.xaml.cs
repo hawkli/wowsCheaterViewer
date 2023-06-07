@@ -487,7 +487,7 @@ namespace 郭楠查看器
                             //解析军团信息
                             if (!string.IsNullOrEmpty(result_getplayerInfo_yuyuko["data"]["clanInfo"]["tag"].ToString()))
                             {
-                                playerInfo.clanName = "[" + result_getplayerInfo_yuyuko["data"]["clanInfo"]["tag"].ToString() + "]";
+                                playerInfo.clanTag = "[" + result_getplayerInfo_yuyuko["data"]["clanInfo"]["tag"].ToString() + "]";
                                 playerInfo.clanColor = result_getplayerInfo_yuyuko["data"]["clanInfo"]["colorRgb"].ToString();
                                 playerInfo.clanId = result_getplayerInfo_yuyuko["data"]["clanInfo"]["clanId"].ToString();
                             }
@@ -521,7 +521,28 @@ namespace 郭楠查看器
                 {
                     if (markJson.ContainsKey(playerInfo.playerId))
                     {
-                        playerInfo.markMessage = markJson[playerInfo.playerId].ToString();
+                        JArray markArray = new JArray();
+                        try
+                        {
+                             markArray = JArray.FromObject(markJson[playerInfo.playerId]);
+                        }
+                        catch
+                        {
+                            //如果获取标记失败了，就重新建立map，怕抢进程，不更新配置文件。如果有需要变更标记的才顺便更新
+                            Dictionary<string, object> markInfo = new Dictionary<string, object>() {
+                                { "markTime",DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")},
+                                { "clanTag",playerInfo.clanTag},
+                                { "name",playerInfo.name},
+                                { "markMessage",markJson[playerInfo.playerId]}
+                            };
+                            markArray.Add(JObject.FromObject(markInfo));
+                            markJson[playerInfo.playerId] = markArray;
+                        }
+                        markArray = JArray.FromObject(markArray.OrderByDescending(i => Convert.ToDateTime(i["markTime"])));
+                        playerInfo.markMessage = markArray.First()["markMessage"].ToString();
+                        playerInfo.lastMarkMessage = "上次标记时间："+ markArray.First()["markTime"].ToString()+Environment.NewLine+
+                                                     "上次标记时的军团："+ markArray.First()["clanTag"].ToString() + Environment.NewLine +
+                                                     "上次标记时的名称：" + markArray.First()["name"].ToString();
                     }
                 }
 
@@ -627,13 +648,32 @@ namespace 郭楠查看器
                 logShow("更新玩家标记失败，未能定位到玩家所在队伍");
 
             if(currentPlayerInfo!=null)
-                if (!string.IsNullOrEmpty(currentPlayerInfo.markMessage))
+            {
+                //config更新
+                JArray markArray = new JArray();
+                string curruntMarkMessage = currentPlayerInfo.markMessage;
+                string lastMarkMessage = "";
+                if (markJson.ContainsKey(currentPlayerInfo.playerId))
                 {
-                    //config更新  {"mark":{"id":"123123"}
-                    markJson[currentPlayerInfo.playerId] = currentPlayerInfo.markMessage;
+                    markArray = JArray.FromObject(markJson[currentPlayerInfo.playerId]);
+                    markArray = JArray.FromObject(markArray.OrderByDescending(i => Convert.ToDateTime(i["markTime"])));
+                    lastMarkMessage = markArray.First()["markMessage"].ToString();
+                }
+                //标记与上次不同，且都不为空时才进行更新
+                if (curruntMarkMessage != lastMarkMessage && !(string.IsNullOrEmpty(curruntMarkMessage) && string.IsNullOrEmpty(lastMarkMessage)))
+                {
+                    Dictionary<string, object> markInfo = new Dictionary<string, object>() {
+                        { "markTime",DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")},
+                        { "clanTag",currentPlayerInfo.clanTag},
+                        { "name",currentPlayerInfo.name},
+                        { "markMessage",currentPlayerInfo.markMessage}
+                    };
+                    markArray.Add(JObject.FromObject(markInfo));
+                    markJson[currentPlayerInfo.playerId] = markArray;
                     updateConfigFile();
                     logShow("已更新标记玩家：" + currentPlayerInfo.playerId + "，标记内容：" + currentPlayerInfo.markMessage);
                 }
+            }
         }
     }
 
@@ -643,7 +683,7 @@ namespace 郭楠查看器
         public string playerId { get; set; }
         public string playerPrColor { get; set; }
         public string shipId { get; set; }
-        public string clanName { get; set; }
+        public string clanTag { get; set; }
         public string clanId { get; set; }
         public string clanColor { get; set; }
         public string shipName { get; set; }
@@ -658,5 +698,6 @@ namespace 郭楠查看器
         public string battleCount_rank { get; set; }
         public string winRate_rank { get; set; }
         public string markMessage { get; set; }
+        public string lastMarkMessage { get; set; }
     }
 }
