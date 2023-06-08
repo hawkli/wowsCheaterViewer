@@ -575,7 +575,8 @@ namespace 郭楠查看器
                         playerInfo.markMessage = markArray.First()["markMessage"].ToString();
                         playerInfo.lastMarkMessage = "上次标记时间："+ markArray.First()["markTime"].ToString()+Environment.NewLine+
                                                      "上次标记时的军团："+ markArray.First()["clanTag"].ToString() + Environment.NewLine +
-                                                     "上次标记时的名称：" + markArray.First()["name"].ToString();
+                                                     "上次标记时的名称：" + markArray.First()["name"].ToString() + Environment.NewLine +
+                                                     "上次标记时的内容：" + markArray.First()["markMessage"].ToString();
                     }
                 }
             );
