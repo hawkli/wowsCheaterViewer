@@ -60,8 +60,6 @@ namespace 郭楠查看器
             checkUpdate();
             watchRepFolder();
         }
-
-
         private void init()//初始化
         {
             markJson = JObject.FromObject(new Dictionary<string, Object>());
@@ -99,7 +97,6 @@ namespace 郭楠查看器
                 checkPath(configJson["wowsRootPath"].ToString());
 
         }
-
         private void checkUpdate()//检测客户端升级
         {
             try
@@ -192,13 +189,14 @@ namespace 郭楠查看器
                 MessageBox.Show("更新失败，" + ex.Message);
             }
         }
-
         private void logShow(string message)//显示日志
         {
             Dispatcher.Invoke(() => logText.Text = message);
             Logger.logWrite(message);
         }
-
+        
+        
+        
         private void readmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
         {
             ReadMeWindow window = new ReadMeWindow();
@@ -216,7 +214,6 @@ namespace 郭楠查看器
                 logShow("未设定游戏路径，无法刷新。请设定后重试");
             }
         }
-
         private void resetRootPathEvent(object sender, RoutedEventArgs e)//重设路径事件
         {
             resetRootPath();
@@ -240,15 +237,17 @@ namespace 郭楠查看器
                 teamView(readRepJson(repPath));
             }
         }
-        private void debugPlayerEvent(object sender, RoutedEventArgs e)//使用与免责声明
+        private void debugPlayerEvent(object sender, RoutedEventArgs e)//单个玩家调试
         {
-            JToken item = JToken.Parse("{\r\n  \"shipId\": 3761190608,\r\n  \"relation\": 2,\r\n  \"id\": 537303632,\r\n  \"name\": \"猫猫不流泪 啤酒喝到醉\"\r\n}");
+            JToken item = JToken.Parse("{\r\n  \"shipId\": 4181604176,\r\n  \"relation\": 2,\r\n  \"id\": 347089,\r\n  \"name\": \"我的蜜瓜分你一半\"\r\n}");
             playerInfo playerInfo = parsePlayerJson(item);
             PropertyInfo[] properties = playerInfo.GetType().GetProperties();
             for (int i= 0; i < properties.Count(); i++)
                 Logger.logWrite(string.Format("{0,-20}",properties[i].Name)+ ":"+ properties[i].GetValue(playerInfo));
             logShow("解析完成，请前往日志文件查看");
         }
+        
+        
         private void resetRootPath()//重设路径
         {
             string newFolder = null;
@@ -326,7 +325,6 @@ namespace 郭楠查看器
                 logShow("请检查路径是否设置");
             }
         }
-
         private JObject readTempJson()//读取对局中生成的临时文件
         {
             Thread.Sleep(1000);
@@ -342,7 +340,6 @@ namespace 郭楠查看器
             }
             return infoJson;
         }
-
         private JObject readRepJson(string path)//读取指定的rep文件
         {
             JObject infoJson;
@@ -459,7 +456,6 @@ namespace 郭楠查看器
                 });
             };
         }
-
         private playerInfo parsePlayerJson(JToken item)//解析单个玩家的json数据
         {
             playerInfo playerInfo = new playerInfo();
@@ -582,7 +578,6 @@ namespace 郭楠查看器
             );
             return playerInfo;
         }
-
         private JObject ReadJson(string path)//读取json文件
         {
             //读取json文件
@@ -644,7 +639,6 @@ namespace 郭楠查看器
             }
             return result.ToString();
         }
-
         private int shipSort(JObject result_shipInfo)//船只排序
         {
             //船只排序：舰种(2)+等级(2)+不知道(2)
@@ -665,8 +659,6 @@ namespace 郭楠查看器
                 String.Format("{0:D2}", unknowSort));
             return Convert.ToInt32(shipSortStr);
         }
-
-
         private void markMessageChangedEvent(object sender, RoutedEventArgs e)
         {
             playerInfo currentPlayerInfo = new playerInfo();
@@ -704,7 +696,7 @@ namespace 郭楠查看器
                     logShow("已更新标记玩家：" + currentPlayerInfo.playerId + "，标记内容：" + currentPlayerInfo.markMessage);
                 }
             }
-        }
+        }//标记变更时更新配置文件
     }
 
     public class playerInfo
