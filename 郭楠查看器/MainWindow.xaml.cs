@@ -47,6 +47,7 @@ namespace 郭楠查看器
         private apiClient apiClient = new apiClient();
         private string visionTag = "2023.06.08";
         private string updateFolderPath = ".update";
+        Boolean watchFlag = false;
 
         public MainWindow()
         {
@@ -56,6 +57,7 @@ namespace 郭楠查看器
         private void MainWindowLoaded(object sender, RoutedEventArgs e)//窗口加载完成后，初始化并监控rep文件夹
         {
             init();
+            checkUpdate();
             watchRepFolder();
         }
 
@@ -93,14 +95,13 @@ namespace 郭楠查看器
                 updateConfigFile();
                 logShow("首次运行，已生成配置文件");
             }
-            
-            checkUpdate();
-            
+            if (!String.IsNullOrEmpty(configJson["wowsRootPath"].ToString()))
+                checkPath(configJson["wowsRootPath"].ToString());
+
         }
 
         private void checkUpdate()//检测客户端升级
         {
-            
             try
             {
                 if (Directory.Exists(updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
@@ -116,11 +117,12 @@ namespace 郭楠查看器
                 {
                     Logger.logWrite("需要更新");
                     string updatalog = releaseCheckResurnJson["body"].ToString();
-                    Boolean updataFlag = false;
 
+                    Boolean updataFlag = false;
                     updataFlag = System.Windows.MessageBox.Show("检查到新版本，是否进行更新？"+Environment.NewLine+"更新内容：" + Environment.NewLine + updatalog, "更新提示", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
                     if (updataFlag)
                     {
+                        watchFlag = false;
                         System.Threading.Tasks.Task.Run(() =>
                         {
                             logShow("确认更新");
@@ -204,12 +206,7 @@ namespace 郭楠查看器
         }
         private void reflashEvent(object sender, RoutedEventArgs e)//手动刷新事件
         {
-            Boolean continueReflash = false;
-            if (!String.IsNullOrEmpty(configJson["wowsRootPath"].ToString()))
-                if (Directory.Exists(configJson["wowsRootPath"].ToString()))
-                    if (checkPath(configJson["wowsRootPath"].ToString()))
-                        continueReflash = true;
-            if (continueReflash)
+            if (watchFlag)
             {
                 logShow("刷新当前对局数据");
                 teamView(readTempJson());
@@ -228,9 +225,8 @@ namespace 郭楠查看器
         {
             string defaultPath = @"C:\";
             if (!String.IsNullOrEmpty(configJson["wowsRootPath"].ToString()))
-                if (Directory.Exists(configJson["wowsRootPath"].ToString()))
-                    if (checkPath(configJson["wowsRootPath"].ToString()))
-                        defaultPath = System.IO.Path.Combine(configJson["wowsRootPath"].ToString(), "replays"); 
+                if (checkPath(configJson["wowsRootPath"].ToString()))
+                    defaultPath = System.IO.Path.Combine(configJson["wowsRootPath"].ToString(), "replays"); 
 
             string repPath = null;
             CommonOpenFileDialog dlg = new CommonOpenFileDialog();
@@ -270,6 +266,7 @@ namespace 郭楠查看器
                     updateConfigFile();
                     logShow("重设路径成功");
                     rootPath.Text = newFolder;
+                    watchFlag = true;
                 }
 
             watchRepFolder();
@@ -300,19 +297,13 @@ namespace 郭楠查看器
             {
                 logShow("路径：" + path + "检测失败，请重新选择");
             }
-
+            watchFlag = checkPath;
             return checkPath;
 
         }
         private void watchRepFolder()//监控rep文件夹
         {
-            Boolean continueWatch = false;
-
-            if (!String.IsNullOrEmpty(configJson["wowsRootPath"].ToString()))
-                if (Directory.Exists(configJson["wowsRootPath"].ToString()))
-                    if (checkPath(configJson["wowsRootPath"].ToString()))
-                        continueWatch = true;
-            if(continueWatch)
+            if(watchFlag)
             {
                 watcher.EnableRaisingEvents = false;//先停止监控
                 watcher.Path = System.IO.Path.Combine(configJson["wowsRootPath"].ToString(), "replays");
@@ -332,7 +323,7 @@ namespace 郭楠查看器
             }
             else
             {
-                logShow("请设定游戏根路径");
+                logShow("请检查路径是否设置");
             }
         }
 
