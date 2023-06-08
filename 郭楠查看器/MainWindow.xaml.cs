@@ -31,6 +31,7 @@ using System.Net;
 using System.Security.Policy;
 using System.IO.Compression;
 using Path = System.IO.Path;
+using System.Reflection.Emit;
 
 namespace 郭楠查看器
 {
@@ -44,16 +45,20 @@ namespace 郭楠查看器
         private JObject markJson;
         private FileSystemWatcher watcher = new FileSystemWatcher();
         private apiClient apiClient = new apiClient();
-        private string visionTag = "2023.06.06";
+        private string visionTag = "2023.06.08";
         private string updateFolderPath = ".update";
 
         public MainWindow()
         {
             InitializeComponent();
+        }
 
+        private void MainWindowLoaded(object sender, RoutedEventArgs e)//窗口加载完成后，初始化并监控rep文件夹
+        {
             init();
             watchRepFolder();
         }
+
 
         private void init()//初始化
         {
@@ -61,7 +66,7 @@ namespace 郭楠查看器
             configJson = JObject.FromObject(new Dictionary<string, Object>()
             {
                 { "wowsRootPath", null } ,
-                { "mark",markJson }
+                { "mark",null }
             });
             //如果不存在，创建日志文件夹
             string logFolder = "log";
@@ -72,32 +77,37 @@ namespace 郭楠查看器
                 if (!Path.GetFileName(logFile).StartsWith(DateTime.Now.ToString("yyyy-MM-dd")))
                     File.Delete(logFile);
 
-            if (File.Exists("config.json"))
+            string configPath = "config.json";
+            if (File.Exists(configPath))
             {
-                configJson = ReadJson("config.json");//读配置文件
-                if (configJson.ContainsKey("mark"))
-                    markJson = JObject.FromObject(configJson["mark"]);
-                else
-                {
-                    configJson["mark"] = markJson;
-                    updateConfigFile();
-                }
-
+                JObject configJson_readFromFile = ReadJson(configPath);//读配置文件
+                foreach(KeyValuePair<string, JToken> configKV in configJson)//将读到的配置覆盖到默认值里
+                    if(configJson_readFromFile.ContainsKey(configKV.Key))
+                        configJson[configKV.Key] = configJson_readFromFile[configKV.Key];
+                markJson = JObject.FromObject(configJson["mark"]);
                 rootPath.Text = configJson["wowsRootPath"].ToString();
                 logShow("已读取配置文件");
             }
-
+            else
+            {
+                updateConfigFile();
+                logShow("首次运行，已生成配置文件");
+            }
+            
             checkUpdate();
+            
         }
 
         private void checkUpdate()//检测客户端升级
         {
-            if (Directory.Exists(updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
-                Directory.Delete(updateFolderPath, true);
-            string releaseCheckUrl = "https://gitee.com/api/v5/repos/bbaoqaq/wowsCheaterViewer/releases/latest";
-            JObject releaseCheckResurnJson = apiClient.GetClient(releaseCheckUrl);
+            
             try
             {
+                if (Directory.Exists(updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
+                    Directory.Delete(updateFolderPath, true);
+                string releaseCheckUrl = "https://gitee.com/api/v5/repos/bbaoqaq/wowsCheaterViewer/releases/latest";
+                JObject releaseCheckResurnJson = apiClient.GetClient(releaseCheckUrl);
+
                 if (releaseCheckResurnJson["tag_name"].ToString() == visionTag)
                 {
                     Logger.logWrite("无需更新");
@@ -106,54 +116,78 @@ namespace 郭楠查看器
                 {
                     Logger.logWrite("需要更新");
                     string updatalog = releaseCheckResurnJson["body"].ToString();
-                    if (System.Windows.MessageBox.Show("检查到新版本，是否进行更新"+Environment.NewLine+"更新内容：" + Environment.NewLine + updatalog, "提示：", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
+                    Boolean updataFlag = false;
+
+                    updataFlag = System.Windows.MessageBox.Show("检查到新版本，是否进行更新？"+Environment.NewLine+"更新内容：" + Environment.NewLine + updatalog, "更新提示", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
+                    if (updataFlag)
                     {
-                        Logger.logWrite("确认更新");
-                        //确认能够转换GBK编码
-                        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-                        string updateZipFilePath = Path.Combine(updateFolderPath, releaseCheckResurnJson["assets"][0]["name"].ToString());
-                        string downloadUrl = releaseCheckResurnJson["assets"][0]["browser_download_url"].ToString();
-                        Directory.CreateDirectory(updateFolderPath);
-                        //下载
-                        using (var web = new WebClient()){web.DownloadFile(downloadUrl, updateZipFilePath); }
-                        Logger.logWrite("下载完成");
-                        //解压
-                        ZipFile.ExtractToDirectory(updateZipFilePath, updateFolderPath, Encoding.GetEncoding("GBK"));
-                        File.Delete(updateZipFilePath);
-                        Logger.logWrite("解压完成");
-                        //生成更新批处理脚本
-                        string updateBatPath = Path.Combine(updateFolderPath,"update.bat");
-                        string copyFromFolderPath = Directory.GetDirectories(updateFolderPath).First();//取解压后的根文件夹
-                        string copyToFolderPath = Environment.CurrentDirectory;//取当前文件夹
-                        string processName = Assembly.GetExecutingAssembly().GetName().Name;//取项目名称，也是进程名称
-                        string batStr = @"chcp 65001"+ Environment.NewLine +//用中文编码
-                            "taskkill /f /im "+ processName + ".exe "+ Environment.NewLine +//结束项目进程
-                            "xcopy " + copyFromFolderPath.Replace(" ", @""" """) + " " + copyToFolderPath.Replace(" ", @""" """) + " /e /y "+Environment.NewLine+//覆盖所有需要更新的文件
-                            "start " + Path.Combine(copyToFolderPath, processName+".exe").Replace(" ", @""" """);//重启进程
-                        File.Delete(updateBatPath);
-                        StreamWriter sw = new StreamWriter(updateBatPath);
-                        sw.Write(batStr, Encoding.GetEncoding("GBK"));
-                        sw.Close();
-                        Logger.logWrite("即将更新");
-                        //启动批处理脚本
-                        Process Process = new Process();
-                        Process.StartInfo.WorkingDirectory = copyToFolderPath;
-                        Process.StartInfo.FileName = updateBatPath;
-                        Process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                        Process.Start();
-                        Process.WaitForExit();
-                        //如果没有正常启动则报错
-                        throw new Exception("批处理脚本启动失败");
+                        System.Threading.Tasks.Task.Run(() =>
+                        {
+                            logShow("确认更新");
+                            //确认能够转换GBK编码
+                            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                            string updateZipFilePath = Path.Combine(updateFolderPath, releaseCheckResurnJson["assets"][0]["name"].ToString());
+                            string downloadUrl = releaseCheckResurnJson["assets"][0]["browser_download_url"].ToString();
+                            Directory.CreateDirectory(updateFolderPath);
+                            //下载
+                            Boolean downloadFlag = false;
+                            using (var web = new WebClient())
+                            {
+                                web.DownloadProgressChanged += (s, e) =>
+                                {
+                                    string.Format("正在下载文件：{0}%  ({1}/{2})",
+                                        String.Format("{0:D2}", e.ProgressPercentage),
+                                        e.BytesReceived,
+                                        e.TotalBytesToReceive);
+                                    logShow("正在下载："+e.ProgressPercentage.ToString()+"%");
+                                };
+                                web.DownloadFileCompleted += (s, e) =>
+                                {
+                                    downloadFlag = true;
+                                };
+                                web.DownloadFileAsync(new Uri(downloadUrl), updateZipFilePath);
+                            }
+                            while (!downloadFlag) ;
+                            Logger.logWrite("下载完成");
+                            //解压
+                            ZipFile.ExtractToDirectory(updateZipFilePath, updateFolderPath, Encoding.GetEncoding("GBK"));
+                            File.Delete(updateZipFilePath);
+                            logShow("解压完成");
+                            //生成更新批处理脚本
+                            string updateBatPath = Path.Combine(updateFolderPath, "update.bat");
+                            string copyFromFolderPath = Directory.GetDirectories(updateFolderPath).First();//取解压后的根文件夹
+                            string copyToFolderPath = Environment.CurrentDirectory;//取当前文件夹
+                            string processName = Assembly.GetExecutingAssembly().GetName().Name;//取项目名称，也是进程名称
+                            string batStr = @"chcp 65001" + Environment.NewLine +//用中文编码
+                                "taskkill /f /im " + processName + ".exe " + Environment.NewLine +//结束项目进程
+                                "xcopy " + copyFromFolderPath.Replace(" ", @""" """) + " " + copyToFolderPath.Replace(" ", @""" """) + " /e /y " + Environment.NewLine +//覆盖所有需要更新的文件
+                                "start " + Path.Combine(copyToFolderPath, processName + ".exe").Replace(" ", @""" """);//重启进程
+                            File.Delete(updateBatPath);
+                            StreamWriter sw = new StreamWriter(updateBatPath);
+                            sw.Write(batStr, Encoding.GetEncoding("GBK"));
+                            sw.Close();
+                            logShow("即将更新");
+                            //启动批处理脚本
+                            Process Process = new Process();
+                            Process.StartInfo.WorkingDirectory = copyToFolderPath;
+                            Process.StartInfo.FileName = updateBatPath;
+                            Process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                            Process.Start();
+                            Process.WaitForExit();
+                            //如果没有正常启动则报错
+                            throw new Exception("批处理脚本启动失败");
+                        });
                     }
                     else
                     {
-                        Logger.logWrite("用户取消更新");
+                        logShow("用户取消更新");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.logWrite("更新失败，"+ex.Message);
+                Logger.logWrite("更新失败，" + ex.Message);
+                MessageBox.Show("更新失败，" + ex.Message);
             }
         }
 
@@ -284,16 +318,15 @@ namespace 郭楠查看器
                 watcher.Path = System.IO.Path.Combine(configJson["wowsRootPath"].ToString(), "replays");
                 watcher.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
                 watcher.Filter = "tempArenaInfo.json";
-                watcher.Created += (s, e) => Dispatcher.Invoke(() =>
+                watcher.Created += (s, e) => 
                 {
                     logShow("检测到对局开始，正在读取");
                     teamView(readTempJson());
-                });
-
-                watcher.Deleted += (s, e) => Dispatcher.Invoke(() =>
+                };
+                watcher.Deleted += (s, e) => 
                 {
                     logShow("检测到对局结束，正在监控rep文件夹");
-                });
+                };
                 watcher.EnableRaisingEvents = true;
                 logShow("正在监控rep文件夹");
             }
@@ -347,6 +380,7 @@ namespace 郭楠查看器
         {
             if (infoJson != null) 
             {
+                JObject markJson_beforeProcess = markJson;
                 System.Threading.Tasks.Task.Run(() =>{
                     try
                     {
@@ -363,6 +397,7 @@ namespace 郭楠查看器
                         List<playerInfo> playerInfo_team2 = new List<playerInfo>();
                         List<string> failedList = new List<string>();
                         JArray playerJArray = JArray.FromObject(infoJson["vehicles"]);
+                        Int32 readCount = 0;
 
                         //并行执行
                         ParallelLoopResult parallelResult = Parallel.For(0, playerJArray.Count(), i =>
@@ -376,7 +411,7 @@ namespace 郭楠查看器
                                 playerName = item["name"].ToString();
                                 playerInfo = parsePlayerJson(item);
 
-                                //0和1是己方，2是敌方
+                                //0是用户，1是己方，2是敌方
                                 if (Convert.ToInt32(item["relation"]) == 0 && playerInfo.clanId == "7000004849")
                                 {
                                     MessageBox.Show("此插件禁止[CV-山东]军团用户使用");
@@ -395,9 +430,14 @@ namespace 郭楠查看器
                                 failedList.Add(playerName);
                                 Logger.logWrite("玩家信息读取失败，"+ex.Message+Environment.NewLine+item.ToString());
                             }
-
-                        }
-                        );
+                            finally
+                            {
+                                readCount = readCount + 1;
+                                logShow(string.Format("正在读取对局信息({0}/{1})", 
+                                    readCount.ToString(), 
+                                    playerJArray.Count()));
+                            }
+                        });
                         //绑定给前台
                         Dispatcher.Invoke(() =>
                         {
@@ -421,6 +461,9 @@ namespace 郭楠查看器
                             reflashBtn.IsEnabled = true;
                             readRepBtn.IsEnabled = true;
                         });
+                        //如果标记有变动，则更新
+                        if (markJson_beforeProcess != markJson)
+                            updateConfigFile();
                     }
                 });
             };
@@ -494,7 +537,6 @@ namespace 郭楠查看器
                         }
                         else
                         {
-
                             playerInfo.winRate_pvp = hiddenMessage;
                             playerInfo.winRate_rank = hiddenMessage;
                         }
@@ -528,7 +570,7 @@ namespace 郭楠查看器
                         }
                         catch
                         {
-                            //如果获取标记失败了，就重新建立map，怕抢进程，不更新配置文件。如果有需要变更标记的才顺便更新
+                            //如果获取标记失败了，就重新建立map。如果有需要变更标记的才顺便更新
                             Dictionary<string, object> markInfo = new Dictionary<string, object>() {
                                 { "markTime",DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")},
                                 { "clanTag",playerInfo.clanTag},
@@ -545,11 +587,7 @@ namespace 郭楠查看器
                                                      "上次标记时的名称：" + markArray.First()["name"].ToString();
                     }
                 }
-
-
-                
             );
-
             return playerInfo;
         }
 
