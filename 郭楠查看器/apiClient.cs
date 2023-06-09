@@ -11,7 +11,7 @@ using System.Windows;
 
 namespace 郭楠查看器
 {
-    public partial class apiClient
+    public class apiClient
     {
         Logger Logger = Logger.Instance;
         string ip_official = "https://vortex.wowsgame.cn";

@@ -512,7 +512,8 @@ namespace 郭楠查看器
                     //解析船信息
                     if (result_shipInfo != null)
                     {
-                        playerInfo.shipName = String.Format("{0,-4}", IntToRoman(Convert.ToInt32(result_shipInfo["data"]["level"]))) + result_shipInfo["data"]["nameCn"].ToString();
+                        playerInfo.shipLevel_int = Convert.ToInt32(result_shipInfo["data"]["level"]);
+                        playerInfo.shipName = result_shipInfo["data"]["nameCn"].ToString();
                         playerInfo.shipSort = shipSort(result_shipInfo);
                     }
                 },
@@ -655,21 +656,6 @@ namespace 郭楠查看器
             }
             return winRate;
         }
-        private string IntToRoman(int num)//数字转罗马字符
-        {
-            int[] nums = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
-            string[] romans = { "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I" };
-            StringBuilder result = new StringBuilder();
-            for (int i = 0; i < 13; i++)
-            {
-                while (num >= nums[i])
-                {
-                    result.Append(romans[i]);
-                    num -= nums[i];
-                }
-            }
-            return result.ToString();
-        }
         private int shipSort(JObject result_shipInfo)//船只排序
         {
             //船只排序：舰种(2)+等级(2)+不知道(2)
@@ -754,27 +740,5 @@ namespace 郭楠查看器
         }
     }
 
-    public class playerInfo
-    {
-        public string name { get; set; }
-        public string playerId { get; set; }
-        public string playerPrColor { get; set; }
-        public string shipId { get; set; }
-        public string clanTag { get; set; }
-        public string clanId { get; set; }
-        public string clanColor { get; set; }
-        public string shipName { get; set; }
-        public int shipSort { get; set; }
-        public string banMatch { get; set; }
-        public string banMatch_fullStr { get; set; }
-        public string banColor { get; set; }
-        public string battleCount_ship { get; set; }
-        public string winRate_ship { get; set; }
-        public string battleCount_pvp { get; set; }
-        public string winRate_pvp { get; set; }
-        public string battleCount_rank { get; set; }
-        public string winRate_rank { get; set; }
-        public string markMessage { get; set; }
-        public string lastMarkMessage { get; set; }
-    }
+
 }

@@ -78,6 +78,7 @@
                                     <Run Text="{Binding clanTag}" Foreground="{Binding clanColor}"/>
                                     <Run Text="{Binding name}"/>
                                     <Run Text="&#13;"/>
+                                    <Run Text="{Binding shipLevel_roman}"/>
                                     <Run Text="{Binding shipName}"/>
                                     </TextBlock>
                                 </Grid>
