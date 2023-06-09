@@ -5,28 +5,32 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:郭楠查看器"
         mc:Ignorable="d"
-        Title="使用与免责声明" Height="250" Width="550">
-    <Grid>
-        <TextBlock TextWrapping="Wrap">
-            <Run/>
-            <Run Text="1、自动监控对局的功能需要先设定路径"/>
-            <Run Text="&#13;"/>
-            <Run Text="2、本程序目前仅支持国服"/>
-            <Run Text="&#13;"/>
-            <Run Text="3、本程序数据来源于国服官方接口与yuyuko机器人接口"/>
-            <Run Text="&#13;"/>
-            <Run Text="4、yuyuko机器人接口负载较大，调用时读取较慢，请耐心等待"/>
-            <Run Text="&#13;"/>
-            <Run Text="5、关于[封禁匹配]列的说明："/>
-            <Run Text="&#13;"/>
-            <Run Text="  5.1、封禁匹配数据源来源于yuyuko机器人接口"/>
-            <Run Text="&#13;"/>
-            <Run Text="  5.2、匹配的原理是检测yuyuko机器人收集过的玩家id是否与封禁名单匹配上"/>
-            <Run Text="&#13;"/>
-            <Run Text="  5.3、yuyuko机器人并未收集国服所有玩家信息，所以匹配数量即使为1也不能说明该玩家被封禁过"/>
-            <Run Text="&#13;"/>
-            <Run Text=""/>
-            <Run Text="&#13;"/>
+        Title="使用免责说明" Height="350" Width="550" ResizeMode="NoResize">
+    <Grid ShowGridLines="True">
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="50"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock TextWrapping="Wrap" Grid.Row="0" 
+                   Text="
+战舰世界国服，挂比查看器（功能类似海猴查看器/Monitor）  &#13;
+1、本程序目前仅支持国服  &#13;
+2、本程序数据来源于国服官方接口与yuyuko机器人接口  &#13;
+3、功能使用说明：  &#13;
+  3.1、重设游戏路径：设定完游戏路径后，程序将自动监控对局并识别对局信息  &#13;
+  3.2、刷新对局信息：重新识别当前正在进行中的对局信息，建议在读取失败的情况下使用  &#13;
+  3.3、读取rep文件：识别rep文件中的对局信息  &#13;
+  3.4、标记所有敌方：将敌方玩家全部标记下来，标记的内容可前往配置文件查看  &#13;
+  3.5、单个玩家调试：调试单个玩家需要从rep文件或对局文件或报错日志中获取。格式类似于：  &#13;
+       {'shipId':'', 'relation':'', 'id':'', 'name':''}  &#13;
+4、关于[封禁匹配]列的说明：  &#13;
+  4.1、封禁匹配数据源来源于yuyuko机器人接口  &#13;
+  4.2、匹配的规则是检测yuyuko机器人收集过的玩家id是否与封禁名单匹配上  &#13;
+  4.3、yuyuko机器人并未收集国服所有玩家信息，所以匹配数量即使为1也不能说明该玩家被封禁过  " />
+
+        <TextBlock Grid.Row="1">
+            <Run />
             <Hyperlink NavigateUri="https://github.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">
                 *在github中查看
             </Hyperlink>
@@ -38,7 +42,6 @@
             <Hyperlink NavigateUri="https://afdian.net/a/JustOneSummer" RequestNavigate="Hyperlink_Click">
                 *前往赞助yuyuko作者
             </Hyperlink>
-            <Run Text="&#13;"/>
         </TextBlock>
     </Grid>
 </Window>

@@ -32,6 +32,8 @@ using System.Security.Policy;
 using System.IO.Compression;
 using Path = System.IO.Path;
 using System.Reflection.Emit;
+using Microsoft.VisualBasic;
+using System.Net.Mail;
 
 namespace 郭楠查看器
 {
@@ -196,11 +198,14 @@ namespace 郭楠查看器
         }
         
         
-        
         private void readmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
         {
             ReadMeWindow window = new ReadMeWindow();
             window.Show();
+        }
+        private void resetRootPathEvent(object sender, RoutedEventArgs e)//重设路径事件
+        {
+            resetRootPath();
         }
         private void reflashEvent(object sender, RoutedEventArgs e)//手动刷新事件
         {
@@ -213,10 +218,6 @@ namespace 郭楠查看器
             {
                 logShow("未设定游戏路径，无法刷新。请设定后重试");
             }
-        }
-        private void resetRootPathEvent(object sender, RoutedEventArgs e)//重设路径事件
-        {
-            resetRootPath();
         }
         private void readRepEvent(object sender, RoutedEventArgs e)//读取指定rep文件
         {
@@ -237,17 +238,51 @@ namespace 郭楠查看器
                 teamView(readRepJson(repPath));
             }
         }
+        private void markEnemyEvent(object sender, RoutedEventArgs e)//标记所有敌方
+        {
+            List<playerInfo> updateTeam2 = new List<playerInfo>();
+            string markMessage = "标记所有敌方";
+            try
+            {
+                foreach (playerInfo playerInfo in this.team2.Items)
+                {
+                    playerInfo.markMessage = markMessage;
+                    updateMark(playerInfo, markMessage);
+                    updateTeam2.Add(playerInfo);
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    team2.ItemsSource = updateTeam2;
+                });
+                updateConfigFile();
+                logShow(markMessage + "成功");
+            }
+            catch (Exception ex)
+            {
+                logShow(markMessage + "失败，" + ex.Message);
+            }
+        }
         private void debugPlayerEvent(object sender, RoutedEventArgs e)//单个玩家调试
         {
-            JToken item = JToken.Parse("{\r\n  \"shipId\": 4181604176,\r\n  \"relation\": 2,\r\n  \"id\": 347089,\r\n  \"name\": \"我的蜜瓜分你一半\"\r\n}");
-            playerInfo playerInfo = parsePlayerJson(item);
-            PropertyInfo[] properties = playerInfo.GetType().GetProperties();
-            for (int i= 0; i < properties.Count(); i++)
-                Logger.logWrite(string.Format("{0,-20}",properties[i].Name)+ ":"+ properties[i].GetValue(playerInfo));
-            logShow("解析完成，请前往日志文件查看");
+            string playerStr = Interaction.InputBox("调试文本："+ Environment.NewLine + "（作者用来调试的，想用这个功能的话请参考说明文档）", "提示");
+            if(!string.IsNullOrEmpty(playerStr)) 
+            {
+                try
+                {
+                    playerInfo playerInfo = parsePlayerJson(JToken.Parse(playerStr));
+                    PropertyInfo[] properties = playerInfo.GetType().GetProperties();
+                    string outputStr = null;
+                    for (int i = 0; i < properties.Count(); i++)
+                        outputStr = outputStr + string.Format("{0,-20}", properties[i].Name) + ":" + properties[i].GetValue(playerInfo) + Environment.NewLine;
+                    Logger.logWrite(outputStr);
+                    MessageBox.Show(outputStr);
+                }
+                catch(Exception ex)
+                {
+                    MessageBox.Show("解析失败，"+ex.Message);
+                }
+            }
         }
-        
-        
         private void resetRootPath()//重设路径
         {
             string newFolder = null;
@@ -368,7 +403,7 @@ namespace 郭楠查看器
         {
             if (infoJson != null) 
             {
-                JObject markJson_beforeProcess = markJson;
+                string markJson_beforeProcess = markJson.ToString();
                 System.Threading.Tasks.Task.Run(() =>{
                     try
                     {
@@ -377,6 +412,7 @@ namespace 郭楠查看器
                         {
                             reflashBtn.IsEnabled = false;
                             readRepBtn.IsEnabled = false;
+                            markEnemyBtn.IsEnabled = false;
                         });
                         Stopwatch sw = new Stopwatch();
                         sw.Start();
@@ -448,9 +484,10 @@ namespace 郭楠查看器
                         {
                             reflashBtn.IsEnabled = true;
                             readRepBtn.IsEnabled = true;
+                            markEnemyBtn.IsEnabled = true;
                         });
                         //如果标记有变动，则更新
-                        if (markJson_beforeProcess != markJson)
+                        if (markJson_beforeProcess != markJson.ToString())
                             updateConfigFile();
                     }
                 });
@@ -557,15 +594,9 @@ namespace 郭楠查看器
                         }
                         catch
                         {
-                            //如果获取标记失败了，就重新建立map。如果有需要变更标记的才顺便更新
-                            Dictionary<string, object> markInfo = new Dictionary<string, object>() {
-                                { "markTime",DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")},
-                                { "clanTag",playerInfo.clanTag},
-                                { "name",playerInfo.name},
-                                { "markMessage",markJson[playerInfo.playerId]}
-                            };
-                            markArray.Add(JObject.FromObject(markInfo));
-                            markJson[playerInfo.playerId] = markArray;
+                            //如果解析标记失败了，就重新建立map并重新解析
+                            updateMark(playerInfo, markJson[playerInfo.playerId].ToString());
+                            markArray = JArray.FromObject(markJson[playerInfo.playerId]);
                         }
                         markArray = JArray.FromObject(markArray.OrderByDescending(i => Convert.ToDateTime(i["markTime"])));
                         playerInfo.markMessage = markArray.First()["markMessage"].ToString();
@@ -659,7 +690,7 @@ namespace 郭楠查看器
                 String.Format("{0:D2}", unknowSort));
             return Convert.ToInt32(shipSortStr);
         }
-        private void markMessageChangedEvent(object sender, RoutedEventArgs e)
+        private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置文件
         {
             playerInfo currentPlayerInfo = new playerInfo();
             if (this.team1.SelectedIndex >= 0)
@@ -684,19 +715,43 @@ namespace 郭楠查看器
                 //标记与上次不同，且都不为空时才进行更新
                 if (curruntMarkMessage != lastMarkMessage && !(string.IsNullOrEmpty(curruntMarkMessage) && string.IsNullOrEmpty(lastMarkMessage)))
                 {
-                    Dictionary<string, object> markInfo = new Dictionary<string, object>() {
-                        { "markTime",DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")},
-                        { "clanTag",currentPlayerInfo.clanTag},
-                        { "name",currentPlayerInfo.name},
-                        { "markMessage",currentPlayerInfo.markMessage}
-                    };
-                    markArray.Add(JObject.FromObject(markInfo));
-                    markJson[currentPlayerInfo.playerId] = markArray;
+                    updateMark(currentPlayerInfo, currentPlayerInfo.markMessage);
                     updateConfigFile();
-                    logShow("已更新标记玩家：" + currentPlayerInfo.playerId + "，标记内容：" + currentPlayerInfo.markMessage);
                 }
             }
-        }//标记变更时更新配置文件
+        }
+        private void updateMark(playerInfo playerInfo, string markMessage)//更新标记（怕抢进程，不更新配置文件）
+        {
+            Dictionary<string, object> markInfo = new Dictionary<string, object>() {
+                { "markTime",DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")},
+                { "clanTag",playerInfo.clanTag},
+                { "name",playerInfo.name},
+                { "markMessage",markMessage}
+            };
+            JArray markArray = new JArray();
+            if (markJson.ContainsKey(playerInfo.playerId))
+            {
+                try
+                {
+                    //如果配置中已有该玩家标记，且符合规范，则新增
+                    markArray = JArray.FromObject(markJson[playerInfo.playerId]);
+                    markArray.Add(JObject.FromObject(markInfo));
+                }
+                catch
+                {
+                    //如果配置中已有玩家标记，但不符合规范，则覆盖（因为老版本没设计mark的结构，要做兼容）
+                    markArray.Add(JObject.FromObject(markInfo));
+                }
+            }
+            else
+            {
+                //配置中不存在该玩家标记，则新增
+                markArray.Add(JObject.FromObject(markInfo));
+            }
+            markJson[playerInfo.playerId] = markArray;
+            configJson["mark"] = markJson;
+            logShow("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + markMessage);
+        }
     }
 
     public class playerInfo

@@ -37,12 +37,12 @@
 
                 <!--右侧第一行放按钮-->
                 <WrapPanel  Grid.Row="0" >
-                    <Button Click="resetRootPathEvent" Width="100" Height="25">重设游戏路径</Button>
-                    <Button x:Name="reflashBtn" Click="reflashEvent" Width="100" Height="25">刷新对局信息</Button>
-                    <Button x:Name="readRepBtn" Click="readRepEvent" Width="100" Height="25">读取rep文件</Button>
-                    <Button Click="readmeEvent" Width="100" Height="25">使用与免责声明</Button>
-                    <!--  -->
-                    <Button Click="debugPlayerEvent" Width="30" Height="25">debug</Button>
+                    <Button Click="readmeEvent" Width="80" Height="25">使用免责说明</Button>
+                    <Button Click="resetRootPathEvent" Width="80" Height="25">重设游戏路径</Button>
+                    <Button x:Name="reflashBtn" Click="reflashEvent" Width="80" Height="25">刷新对局信息</Button>
+                    <Button x:Name="readRepBtn" Click="readRepEvent" Width="80" Height="25">读取rep文件</Button>
+                    <Button x:Name="markEnemyBtn" Click="markEnemyEvent" Width="80" Height="25" IsEnabled="False">标记所有敌方</Button>
+                    <Button Click="debugPlayerEvent" Width="80" Height="25">单个玩家调试</Button>
                 </WrapPanel>
                 <!--右侧第二行放路径-->
                 <TextBlock Grid.Row="1">
