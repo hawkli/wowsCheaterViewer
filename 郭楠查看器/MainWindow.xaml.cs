@@ -514,7 +514,7 @@ namespace 郭楠查看器
                     {
                         playerInfo.shipLevel_int = Convert.ToInt32(result_shipInfo["data"]["level"]);
                         playerInfo.shipName = result_shipInfo["data"]["nameCn"].ToString();
-                        playerInfo.shipSort = shipSort(result_shipInfo);
+                        playerInfo.shipType = result_shipInfo["data"]["shipType"].ToString();
                     }
                 },
                 () =>//根据玩家id和船id获取排行，顺便帮雨季收集玩家信息
@@ -656,26 +656,7 @@ namespace 郭楠查看器
             }
             return winRate;
         }
-        private int shipSort(JObject result_shipInfo)//船只排序
-        {
-            //船只排序：舰种(2)+等级(2)+不知道(2)
-
-            //cv=4,bb=3,ca=2,dd=1,ss=0,default=-1
-            string type = result_shipInfo["data"]["shipType"].ToString();
-            string[] typeSort = { "Submarine", "Destroyer", "Cruiser", "Battleship", "AirCarrier" };
-            type = Array.IndexOf(typeSort, type).ToString();
-
-            string level = result_shipInfo["data"]["level"].ToString();
-
-            string unknowSort = null;
-
-
-            string shipSortStr = string.Format("{0}{1}{2}",
-                String.Format("{0:D2}", type),
-                String.Format("{0:D2}", level),
-                String.Format("{0:D2}", unknowSort));
-            return Convert.ToInt32(shipSortStr);
-        }
+        
         private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置文件
         {
             playerInfo currentPlayerInfo = new playerInfo();
@@ -739,6 +720,4 @@ namespace 郭楠查看器
             logShow("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + markMessage);
         }
     }
-
-
 }
