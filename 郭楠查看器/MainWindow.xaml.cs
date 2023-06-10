@@ -257,11 +257,11 @@ namespace 郭楠查看器
                         team2.ItemsSource = updateTeam2;
                     });
                     updateConfigFile();
-                    logShow(markMessage + "成功");
+                    logShow(markMessage + "标记成功");
                 }
                 catch (Exception ex)
                 {
-                    logShow(markMessage + "失败，" + ex.Message);
+                    logShow(markMessage + "标记失败，" + ex.Message);
                 }
             }
         }
