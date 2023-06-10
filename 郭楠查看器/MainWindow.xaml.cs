@@ -241,25 +241,28 @@ namespace 郭楠查看器
         private void markEnemyEvent(object sender, RoutedEventArgs e)//标记所有敌方
         {
             List<playerInfo> updateTeam2 = new List<playerInfo>();
-            string markMessage = "标记所有敌方";
-            try
+            string markMessage = Interaction.InputBox("标记内容：", "提示");
+            if (!string.IsNullOrEmpty(markMessage))
             {
-                foreach (playerInfo playerInfo in this.team2.Items)
+                try
                 {
-                    playerInfo.markMessage = markMessage;
-                    updateMark(playerInfo, markMessage);
-                    updateTeam2.Add(playerInfo);
+                    foreach (playerInfo playerInfo in this.team2.Items)
+                    {
+                        playerInfo.markMessage = markMessage;
+                        updateMark(playerInfo, markMessage);
+                        updateTeam2.Add(playerInfo);
+                    }
+                    Dispatcher.Invoke(() =>
+                    {
+                        team2.ItemsSource = updateTeam2;
+                    });
+                    updateConfigFile();
+                    logShow(markMessage + "成功");
                 }
-                Dispatcher.Invoke(() =>
+                catch (Exception ex)
                 {
-                    team2.ItemsSource = updateTeam2;
-                });
-                updateConfigFile();
-                logShow(markMessage + "成功");
-            }
-            catch (Exception ex)
-            {
-                logShow(markMessage + "失败，" + ex.Message);
+                    logShow(markMessage + "失败，" + ex.Message);
+                }
             }
         }
         private void debugPlayerEvent(object sender, RoutedEventArgs e)//单个玩家调试
@@ -515,6 +518,7 @@ namespace 郭楠查看器
                         playerInfo.shipLevel_int = Convert.ToInt32(result_shipInfo["data"]["level"]);
                         playerInfo.shipName = result_shipInfo["data"]["nameCn"].ToString();
                         playerInfo.shipType = result_shipInfo["data"]["shipType"].ToString();
+                        playerInfo.setShipSort();
                     }
                 },
                 () =>//根据玩家id和船id获取排行，顺便帮雨季收集玩家信息
