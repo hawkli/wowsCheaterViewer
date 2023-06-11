@@ -19,7 +19,7 @@ namespace 郭楠查看器
 
         //config，会写入文件的属性
         public string wowsRootPath { get; set; }
-        public Dictionary<string, List<MarkInfo>> mark { get; set; } = new Dictionary<String, List<MarkInfo>>();
+        public Dictionary<string, List<MarkInfo>> mark { get; set; } = new Dictionary<string, List<MarkInfo>>();
 
         //config，不写入文件的属性
         Logger Logger = Logger.Instance;
