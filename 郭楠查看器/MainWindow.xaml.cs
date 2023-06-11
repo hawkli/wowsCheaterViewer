@@ -42,14 +42,12 @@ namespace 郭楠查看器
     /// </summary>
     public partial class MainWindow : Window
     {
+        Config Config = Config.Instance;
         Logger Logger = Logger.Instance;
-        public JObject configJson;
-        private JObject markJson;
         private FileSystemWatcher watcher = new FileSystemWatcher();
         private apiClient apiClient = new apiClient();
         private string visionTag = "2023.06.08";
         private string updateFolderPath = ".update";
-        Boolean watchFlag = false;
 
         public MainWindow()
         {
@@ -58,46 +56,10 @@ namespace 郭楠查看器
 
         private void MainWindowLoaded(object sender, RoutedEventArgs e)//窗口加载完成后，初始化并监控rep文件夹
         {
-            init();
+            Config.init();
+            rootPath.Text = Config.wowsRootPath;
             checkUpdate();
             watchRepFolder();
-        }
-        private void init()//初始化
-        {
-            markJson = JObject.FromObject(new Dictionary<string, Object>());
-            configJson = JObject.FromObject(new Dictionary<string, Object>()
-            {
-                { "wowsRootPath", null } ,
-                { "mark",null }
-            });
-            //如果不存在，创建日志文件夹
-            string logFolder = "log";
-            if (!Directory.Exists(logFolder))
-                Directory.CreateDirectory(logFolder);
-            //删除非当日的日志文件
-            foreach (string logFile in Directory.GetFiles(logFolder))
-                if (!Path.GetFileName(logFile).StartsWith(DateTime.Now.ToString("yyyy-MM-dd")))
-                    File.Delete(logFile);
-
-            string configPath = "config.json";
-            if (File.Exists(configPath))
-            {
-                JObject configJson_readFromFile = ReadJson(configPath);//读配置文件
-                foreach(KeyValuePair<string, JToken> configKV in configJson)//将读到的配置覆盖到默认值里
-                    if(configJson_readFromFile.ContainsKey(configKV.Key))
-                        configJson[configKV.Key] = configJson_readFromFile[configKV.Key];
-                markJson = JObject.FromObject(configJson["mark"]);
-                rootPath.Text = configJson["wowsRootPath"].ToString();
-                logShow("已读取配置文件");
-            }
-            else
-            {
-                updateConfigFile();
-                logShow("首次运行，已生成配置文件");
-            }
-            if (!String.IsNullOrEmpty(configJson["wowsRootPath"].ToString()))
-                checkPath(configJson["wowsRootPath"].ToString());
-
         }
         private void checkUpdate()//检测客户端升级
         {
@@ -121,7 +83,7 @@ namespace 郭楠查看器
                     updataFlag = System.Windows.MessageBox.Show("检查到新版本，是否进行更新？"+Environment.NewLine+"更新内容：" + Environment.NewLine + updatalog, "更新提示", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
                     if (updataFlag)
                     {
-                        watchFlag = false;
+                        Config.watchFlag = false;
                         System.Threading.Tasks.Task.Run(() =>
                         {
                             logShow("确认更新");
@@ -205,38 +167,37 @@ namespace 郭楠查看器
         }
         private void resetRootPathEvent(object sender, RoutedEventArgs e)//重设路径事件
         {
-            resetRootPath();
+            Config.resetRootPath();
+            if (Config.watchFlag)
+                logShow("路径设置成功");
+            else
+                logShow("路径有误，请选择游戏根路径");
+            rootPath.Text = Config.wowsRootPath;
         }
         private void reflashEvent(object sender, RoutedEventArgs e)//手动刷新事件
         {
-            if (watchFlag)
+            if (Config.watchFlag)
             {
                 logShow("刷新当前对局数据");
                 teamView(readTempJson());
             }
             else
             {
-                logShow("未设定游戏路径，无法刷新。请设定后重试");
+                logShow("未设定游戏路径，无法读取。请设定后重试");
             }
         }
         private void readRepEvent(object sender, RoutedEventArgs e)//读取指定rep文件
         {
             string defaultPath = @"C:\";
-            if (!String.IsNullOrEmpty(configJson["wowsRootPath"].ToString()))
-                if (checkPath(configJson["wowsRootPath"].ToString()))
-                    defaultPath = System.IO.Path.Combine(configJson["wowsRootPath"].ToString(), "replays"); 
+            if (Config.watchFlag)
+                    defaultPath = Path.Combine(Config.wowsRootPath, "replays"); 
 
-            string repPath = null;
             CommonOpenFileDialog dlg = new CommonOpenFileDialog();
             dlg.EnsureReadOnly = true;
             dlg.InitialDirectory = defaultPath;
             dlg.Filters.Add(new CommonFileDialogFilter("战舰世界回放文件", "*.wowsreplay"));
-
             if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
-            {
-                repPath = dlg.FileName;
-                teamView(readRepJson(repPath));
-            }
+                teamView(readRepJson(dlg.FileName));
         }
         private void markEnemyEvent(object sender, RoutedEventArgs e)//标记所有敌方
         {
@@ -249,14 +210,14 @@ namespace 郭楠查看器
                     foreach (playerInfo playerInfo in this.team2.Items)
                     {
                         playerInfo.markMessage = markMessage;
-                        updateMark(playerInfo, markMessage);
+                        MarkInfo MarkInfo = new MarkInfo();
+                        MarkInfo.addMarkInfo(playerInfo);
                         updateTeam2.Add(playerInfo);
                     }
                     Dispatcher.Invoke(() =>
                     {
                         team2.ItemsSource = updateTeam2;
                     });
-                    updateConfigFile();
                     logShow(markMessage + "标记成功");
                 }
                 catch (Exception ex)
@@ -286,64 +247,12 @@ namespace 郭楠查看器
                 }
             }
         }
-        private void resetRootPath()//重设路径
-        {
-            string newFolder = null;
-            CommonOpenFileDialog dlg = new CommonOpenFileDialog();
-            dlg.IsFolderPicker = true;
-            dlg.InitialDirectory = @"C:\";
-
-            if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
-                newFolder = dlg.FileName;
-
-            if (!string.IsNullOrEmpty(newFolder))
-                if (checkPath(newFolder))
-                {
-                    configJson["wowsRootPath"] = newFolder;
-                    updateConfigFile();
-                    logShow("重设路径成功");
-                    rootPath.Text = newFolder;
-                    watchFlag = true;
-                }
-
-            watchRepFolder();
-        }
-        private void updateConfigFile()//更新配置文件
-        {
-            configJson["mark"] = markJson;
-            StreamWriter sw = new StreamWriter("config.json");
-            sw.Write(configJson.ToString());
-            sw.Close();
-        }
-        private Boolean checkPath(string path)//检查游戏路径
-        {
-            Boolean checkPath = false;
-
-            if (Directory.Exists(path))
-            {
-                string repFolderPath = System.IO.Path.Combine(path, "replays");
-                string wowsExeFilePath = System.IO.Path.Combine(path, "WorldOfWarships.exe");
-                if (Directory.Exists(path))
-                    if (Directory.GetFiles(path).Contains(wowsExeFilePath) || Directory.GetDirectories(path).Contains(repFolderPath))
-                        checkPath = true;
-
-                if (!checkPath)
-                    logShow("路径：" + path + "似乎不是游戏根目录，请重新选择");
-            }
-            else
-            {
-                logShow("路径：" + path + "检测失败，请重新选择");
-            }
-            watchFlag = checkPath;
-            return checkPath;
-
-        }
         private void watchRepFolder()//监控rep文件夹
         {
-            if(watchFlag)
+            if(Config.watchFlag)
             {
                 watcher.EnableRaisingEvents = false;//先停止监控
-                watcher.Path = System.IO.Path.Combine(configJson["wowsRootPath"].ToString(), "replays");
+                watcher.Path = System.IO.Path.Combine(Config.wowsRootPath, "replays");
                 watcher.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
                 watcher.Filter = "tempArenaInfo.json";
                 watcher.Created += (s, e) => 
@@ -369,7 +278,8 @@ namespace 郭楠查看器
             JObject infoJson;
             try
             {
-                infoJson = ReadJson(System.IO.Path.Combine(configJson["wowsRootPath"].ToString(), "replays", "tempArenaInfo.json"));
+                string infoStr = File.ReadAllText(Path.Combine(Config.wowsRootPath, "replays", "tempArenaInfo.json"));
+                infoJson = JObject.Parse(infoStr);
             }
             catch (Exception ex)
             {
@@ -406,7 +316,6 @@ namespace 郭楠查看器
         {
             if (infoJson != null) 
             {
-                string markJson_beforeProcess = markJson.ToString();
                 System.Threading.Tasks.Task.Run(() =>{
                     try
                     {
@@ -489,9 +398,6 @@ namespace 郭楠查看器
                             readRepBtn.IsEnabled = true;
                             markEnemyBtn.IsEnabled = true;
                         });
-                        //如果标记有变动，则更新
-                        if (markJson_beforeProcess != markJson.ToString())
-                            updateConfigFile();
                     }
                 });
             };
@@ -564,11 +470,11 @@ namespace 郭楠查看器
                                 playerInfo.clanId = result_getplayerInfo_yuyuko["data"]["clanInfo"]["clanId"].ToString();
                             }
                         }
-                        else
-                        {
-                            playerInfo.winRate_pvp = hiddenMessage;
-                            playerInfo.winRate_rank = hiddenMessage;
-                        }
+                    }
+                    else
+                    {
+                        playerInfo.winRate_pvp = hiddenMessage;
+                        playerInfo.winRate_rank = hiddenMessage;
                     }
                 }, 
                 () =>//根据船id获取yuyuko机器人中的船信息和玩家单船信息
@@ -590,77 +496,21 @@ namespace 郭楠查看器
                 }, 
                 () =>//检查配置文件中是否有对该玩家的标记信息，并赋值
                 {
-                    if (markJson.ContainsKey(playerInfo.playerId))
+                    if (Config.mark.Keys.Contains(playerInfo.playerId))
                     {
-                        JArray markArray = new JArray();
-                        try
-                        {
-                             markArray = JArray.FromObject(markJson[playerInfo.playerId]);
-                        }
-                        catch
-                        {
-                            //如果解析标记失败了，就重新建立map并重新解析
-                            updateMark(playerInfo, markJson[playerInfo.playerId].ToString());
-                            markArray = JArray.FromObject(markJson[playerInfo.playerId]);
-                        }
-                        markArray = JArray.FromObject(markArray.OrderByDescending(i => Convert.ToDateTime(i["markTime"])));
-                        playerInfo.markMessage = markArray.First()["markMessage"].ToString();
-                        playerInfo.lastMarkMessage = "上次标记时间："+ markArray.First()["markTime"].ToString()+Environment.NewLine+
-                                                     "上次标记时的军团："+ markArray.First()["clanTag"].ToString() + Environment.NewLine +
-                                                     "上次标记时的名称：" + markArray.First()["name"].ToString() + Environment.NewLine +
-                                                     "上次标记时的内容：" + markArray.First()["markMessage"].ToString();
+                        //取该玩家标记内容下，按时间排序最晚的那个信息
+                        MarkInfo MarkInfo = Config.mark[playerInfo.playerId].OrderByDescending(i => i.markTime).First();
+                        playerInfo.markMessage = MarkInfo.markMessage;
+                        playerInfo.lastMarkMessage = "上次标记时间："+ MarkInfo.markTime + Environment.NewLine+
+                                                     "上次标记时的军团："+ MarkInfo.clanTag + Environment.NewLine +
+                                                     "上次标记时的名称：" + MarkInfo.name + Environment.NewLine +
+                                                     "上次标记时的内容：" + MarkInfo.markMessage;
                     }
                 }
             );
             return playerInfo;
         }
-        private JObject ReadJson(string path)//读取json文件
-        {
-            //读取json文件
-            JObject infoJson = new JObject();
-            using (System.IO.StreamReader file = System.IO.File.OpenText(path))
-            {
-                using (JsonTextReader reader = new JsonTextReader(file))
-                {
-                    infoJson = (JObject)JToken.ReadFrom(reader);
-                }
-            }
-            return infoJson;
-        }
-        private string CalculateWinRate(JObject playerInfo_official, string playerId)//通过官方玩家信息计算pvp胜率
-        {
-            string winRate = null;
-            if (!Convert.ToBoolean(playerInfo_official["data"][playerId]["hidden_profile"]))
-            {
-                //打rank显示rank胜率，其他显示随机胜率
 
-                string winRate_pvp = null;
-                try
-                {
-                    double playerInfo_sumBattleCount_pvp = Convert.ToDouble(playerInfo_official["data"][playerId]["statistics"]["pvp"]["battles_count"]);
-                    double playerInfo_winBattleCount_pvp = Convert.ToDouble(playerInfo_official["data"][playerId]["statistics"]["pvp"]["wins"]);
-                    winRate_pvp = (playerInfo_winBattleCount_pvp / playerInfo_sumBattleCount_pvp * 100).ToString("N2") + "%";
-                }
-                catch { }
-                string winRate_rank = null;
-                try
-                {
-                    double playerInfo_sumBattleCount_rank = Convert.ToDouble(playerInfo_official["data"][playerId]["statistics"]["rank_solo"]["battles_count"]);
-                    double playerInfo_winBattleCount_rank = Convert.ToDouble(playerInfo_official["data"][playerId]["statistics"]["rank_solo"]["wins"]);
-                    winRate_rank = (playerInfo_winBattleCount_rank / playerInfo_sumBattleCount_rank * 100).ToString("N2") + "%";
-                }
-                catch { }
-
-                winRate = "pvp:  " + winRate_pvp + Environment.NewLine +
-                            "rank: " + winRate_rank;
-            }
-            else
-            {
-                winRate = "hidden";
-            }
-            return winRate;
-        }
-        
         private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置文件
         {
             playerInfo currentPlayerInfo = new playerInfo();
@@ -673,55 +523,9 @@ namespace 郭楠查看器
 
             if(currentPlayerInfo!=null)
             {
-                //config更新
-                JArray markArray = new JArray();
-                string curruntMarkMessage = currentPlayerInfo.markMessage;
-                string lastMarkMessage = "";
-                if (markJson.ContainsKey(currentPlayerInfo.playerId))
-                {
-                    markArray = JArray.FromObject(markJson[currentPlayerInfo.playerId]);
-                    markArray = JArray.FromObject(markArray.OrderByDescending(i => Convert.ToDateTime(i["markTime"])));
-                    lastMarkMessage = markArray.First()["markMessage"].ToString();
-                }
-                //标记与上次不同，且都不为空时才进行更新
-                if (curruntMarkMessage != lastMarkMessage && !(string.IsNullOrEmpty(curruntMarkMessage) && string.IsNullOrEmpty(lastMarkMessage)))
-                {
-                    updateMark(currentPlayerInfo, currentPlayerInfo.markMessage);
-                    updateConfigFile();
-                }
+                MarkInfo MarkInfo = new MarkInfo();
+                MarkInfo.addMarkInfo(currentPlayerInfo);
             }
-        }
-        private void updateMark(playerInfo playerInfo, string markMessage)//更新标记（怕抢进程，不更新配置文件）
-        {
-            Dictionary<string, object> markInfo = new Dictionary<string, object>() {
-                { "markTime",DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")},
-                { "clanTag",playerInfo.clanTag},
-                { "name",playerInfo.name},
-                { "markMessage",markMessage}
-            };
-            JArray markArray = new JArray();
-            if (markJson.ContainsKey(playerInfo.playerId))
-            {
-                try
-                {
-                    //如果配置中已有该玩家标记，且符合规范，则新增
-                    markArray = JArray.FromObject(markJson[playerInfo.playerId]);
-                    markArray.Add(JObject.FromObject(markInfo));
-                }
-                catch
-                {
-                    //如果配置中已有玩家标记，但不符合规范，则覆盖（因为老版本没设计mark的结构，要做兼容）
-                    markArray.Add(JObject.FromObject(markInfo));
-                }
-            }
-            else
-            {
-                //配置中不存在该玩家标记，则新增
-                markArray.Add(JObject.FromObject(markInfo));
-            }
-            markJson[playerInfo.playerId] = markArray;
-            configJson["mark"] = markJson;
-            logShow("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + markMessage);
         }
     }
 }

@@ -18,13 +18,13 @@ namespace 郭楠查看器
         public static Config Instance => _instance.Value;
 
         //config，会写入文件的属性
-        Logger Logger = Logger.Instance;
-        public static string wowsRootPath { get; set; }
-        public static Dictionary<string, List<MarkInfo>> mark { get; set; } = new Dictionary<String, List<MarkInfo>>();
+        public string wowsRootPath { get; set; }
+        public Dictionary<string, List<MarkInfo>> mark { get; set; } = new Dictionary<String, List<MarkInfo>>();
 
         //config，不写入文件的属性
-        public Boolean CheckedRootPath = false;
-        private string configPath = @"config.json";
+        Logger Logger = Logger.Instance;
+        public static Boolean watchFlag = false;
+        private static string configPath = @"config.json";
         private static readonly object writerLock = new object();
 
         //方法
@@ -33,7 +33,7 @@ namespace 郭楠查看器
             if (File.Exists(configPath))
             {
                 string configStr = File.ReadAllText(configPath);
-                JObject configJson = Newtonsoft.Json.Linq.JObject.Parse(configStr);
+                JObject configJson = JObject.Parse(configStr);
 
                 if (configJson.ContainsKey("wowsRootPath"))
                     wowsRootPath = configJson["wowsRootPath"].ToString();
@@ -55,7 +55,11 @@ namespace 郭楠查看器
                     }
                 }
             }
-            CheckedRootPath = CheckRootPath(wowsRootPath);
+            else
+            {
+                update();
+            }
+            watchFlag = checkRootPath(wowsRootPath);
         }
 
         public void update()//更新配置文件
@@ -78,16 +82,16 @@ namespace 郭楠查看器
             if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
                 newPath = dlg.FileName;
 
-            if (CheckRootPath(newPath))
+            if (checkRootPath(newPath))
             {
                 wowsRootPath = newPath;
-                CheckedRootPath = true;
+                watchFlag = true;
                 update();
                 Logger.logWrite("重设路径成功");
             }
 
         }
-        private Boolean CheckRootPath(string path)//检查游戏路径
+        private Boolean checkRootPath(string path)//检查游戏路径
         {
             Boolean checkRootPath = false;
             if (!string.IsNullOrEmpty(path))
@@ -117,19 +121,19 @@ namespace 郭楠查看器
 
         Config Config = Config.Instance;
         Logger Logger = Logger.Instance;
-        public void addMarkInfo(playerInfo playerInfo, string markMessage)//新增标记
+        public void addMarkInfo(playerInfo playerInfo)//新增标记
         {
             this.markTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             this.clanTag = playerInfo.clanTag;
             this.name = playerInfo.name;
-            this.markMessage = markMessage;
+            this.markMessage = playerInfo.markMessage;
 
             if (Config.mark.Keys.Contains(playerInfo.playerId))
                 Config.mark[playerInfo.playerId].Add(this);
             else
                 Config.mark[playerInfo.playerId] = new List<MarkInfo> { this };
 
-            Logger.logWrite("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + markMessage);
+            Logger.logWrite("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + playerInfo.markMessage);
             Config.update();
         }
     }
