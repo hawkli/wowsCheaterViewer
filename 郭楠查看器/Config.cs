@@ -61,7 +61,6 @@ namespace 郭楠查看器
             }
             watchFlag = checkRootPath(wowsRootPath);
         }
-
         public void update()//更新配置文件
         {
             lock (writerLock)
@@ -71,7 +70,6 @@ namespace 郭楠查看器
                 sw.Close();
             }
         }
-
         public void resetRootPath()//重设路径
         {
             string newPath = null;
@@ -121,6 +119,7 @@ namespace 郭楠查看器
 
         Config Config = Config.Instance;
         Logger Logger = Logger.Instance;
+
         public void addMarkInfo(playerInfo playerInfo)//新增标记
         {
             this.markTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
@@ -128,6 +127,7 @@ namespace 郭楠查看器
             this.name = playerInfo.name;
             this.markMessage = playerInfo.markMessage;
 
+            //已有玩家信息就增加，没有就新建
             if (Config.mark.Keys.Contains(playerInfo.playerId))
                 Config.mark[playerInfo.playerId].Add(this);
             else
@@ -136,5 +136,6 @@ namespace 郭楠查看器
             Logger.logWrite("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + playerInfo.markMessage);
             Config.update();
         }
+    
     }
 }

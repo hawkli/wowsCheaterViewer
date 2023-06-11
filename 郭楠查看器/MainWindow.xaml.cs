@@ -247,6 +247,24 @@ namespace 郭楠查看器
                 }
             }
         }
+        private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置
+        {
+            playerInfo currentPlayerInfo = new playerInfo();
+            if (this.team1.SelectedIndex >= 0)
+                currentPlayerInfo = (playerInfo)this.team1.Items[this.team1.SelectedIndex];
+            else if (this.team2.SelectedIndex >= 0)
+                currentPlayerInfo = (playerInfo)this.team2.Items[this.team2.SelectedIndex];
+            else
+                logShow("更新玩家标记失败，未能定位到玩家所在队伍");
+
+            if (currentPlayerInfo != null)
+            {
+                MarkInfo MarkInfo = new MarkInfo();
+                MarkInfo.addMarkInfo(currentPlayerInfo);
+            }
+        }
+
+
         private void watchRepFolder()//监控rep文件夹
         {
             if(Config.watchFlag)
@@ -509,23 +527,6 @@ namespace 郭楠查看器
                 }
             );
             return playerInfo;
-        }
-
-        private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置文件
-        {
-            playerInfo currentPlayerInfo = new playerInfo();
-            if (this.team1.SelectedIndex >= 0)
-                currentPlayerInfo = (playerInfo)this.team1.Items[this.team1.SelectedIndex];
-            else if (this.team2.SelectedIndex >= 0)
-                currentPlayerInfo = (playerInfo)this.team2.Items[this.team2.SelectedIndex];
-            else
-                logShow("更新玩家标记失败，未能定位到玩家所在队伍");
-
-            if(currentPlayerInfo!=null)
-            {
-                MarkInfo MarkInfo = new MarkInfo();
-                MarkInfo.addMarkInfo(currentPlayerInfo);
-            }
         }
     }
 }
