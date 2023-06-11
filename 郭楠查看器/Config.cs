@@ -23,8 +23,9 @@ namespace 郭楠查看器
         public static Dictionary<string, List<MarkInfo>> mark { get; set; } = new Dictionary<String, List<MarkInfo>>();
 
         //config，不写入文件的属性
-        private string configPath = @"config.json";
         public Boolean CheckedRootPath = false;
+        private string configPath = @"config.json";
+        private static readonly object writerLock = new object();
 
         //方法
         public void init()//初始化
@@ -59,9 +60,12 @@ namespace 郭楠查看器
 
         public void update()//更新配置文件
         {
-            StreamWriter sw = new StreamWriter(configPath);
-            sw.Write(Newtonsoft.Json.JsonConvert.SerializeObject(this).ToString());
-            sw.Close();
+            lock (writerLock)
+            {
+                StreamWriter sw = new StreamWriter(configPath);
+                sw.Write(Newtonsoft.Json.JsonConvert.SerializeObject(this).ToString());
+                sw.Close();
+            }
         }
 
         public void resetRootPath()//重设路径
