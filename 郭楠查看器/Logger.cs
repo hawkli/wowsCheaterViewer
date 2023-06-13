@@ -19,7 +19,10 @@ namespace 郭楠查看器
         private string defaultLogFile;
         private Logger()
         {
-            defaultLogFile = Path.Combine("log",DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff")+".log");
+            string logFolder = "log";
+            if (!Directory.Exists(logFolder))
+                Directory.CreateDirectory(logFolder);
+            defaultLogFile = Path.Combine(logFolder, DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".log");
         }
 
         //用锁定防止并行占进程
