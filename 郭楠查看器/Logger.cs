@@ -20,8 +20,13 @@ namespace 郭楠查看器
         private Logger()
         {
             string logFolder = "log";
+            //如果日志路径不存在，则新建
             if (!Directory.Exists(logFolder))
                 Directory.CreateDirectory(logFolder);
+            //删除2天前日志
+            foreach(string logFile in Directory.GetFiles(logFolder))
+                if (Convert.ToDateTime(Path.GetFileName(logFile).Split(' ').First()) < DateTime.Now.AddDays(-2).Date)
+                    File.Delete(logFile);
             defaultLogFile = Path.Combine(logFolder, DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".log");
         }
 
