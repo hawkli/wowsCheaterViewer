@@ -20,6 +20,7 @@ namespace 郭楠查看器
         //config，会写入文件的属性
         public string wowsRootPath { get; set; }
         public Dictionary<string, List<MarkInfo>> mark { get; set; } = new Dictionary<string, List<MarkInfo>>();
+        public Dictionary<string, ShipInfo> shipInfo { get; set; } = new Dictionary<string, ShipInfo>();
 
         //config，不写入文件的属性
         Logger Logger = Logger.Instance;
@@ -54,6 +55,10 @@ namespace 郭楠查看器
                         update();
                     }
                 }
+
+                if (configJson.ContainsKey("shipInfo"))
+                    shipInfo = JsonConvert.DeserializeObject<Dictionary<String, ShipInfo>>(configJson["shipInfo"].ToString());
+
             }
             else
             {
@@ -107,6 +112,31 @@ namespace 郭楠查看器
             return checkRootPath;
         }
 
+        public void addMarkInfo(playerInfo playerInfo)//新增标记
+        {
+            MarkInfo MarkInfo = new MarkInfo();
+            MarkInfo.markTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            MarkInfo.clanTag = playerInfo.clanTag;
+            MarkInfo.name = playerInfo.name;
+            MarkInfo.markMessage = playerInfo.markMessage;
+
+            //已有玩家信息就增加，没有就新建
+            if (mark.Keys.Contains(playerInfo.playerId))
+                mark[playerInfo.playerId].Add(MarkInfo);
+            else
+                mark[playerInfo.playerId] = new List<MarkInfo> { MarkInfo };
+
+            Logger.logWrite("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + playerInfo.markMessage);
+            update();
+        }
+
+        public void addShipInfo(string shipId, ShipInfo ShipInfo)//新增船信息
+        {
+            if (!shipInfo.Keys.Contains(shipId))
+                shipInfo[shipId] = ShipInfo;
+            Logger.logWrite("已新增船id：" + shipId );
+            update();
+        }
     }
 
 
@@ -116,26 +146,16 @@ namespace 郭楠查看器
         public string clanTag { get; set; }
         public string name { get; set; }
         public string markMessage { get; set; }
+    }
 
-        Config Config = Config.Instance;
-        Logger Logger = Logger.Instance;
-
-        public void addMarkInfo(playerInfo playerInfo)//新增标记
-        {
-            this.markTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            this.clanTag = playerInfo.clanTag;
-            this.name = playerInfo.name;
-            this.markMessage = playerInfo.markMessage;
-
-            //已有玩家信息就增加，没有就新建
-            if (Config.mark.Keys.Contains(playerInfo.playerId))
-                Config.mark[playerInfo.playerId].Add(this);
-            else
-                Config.mark[playerInfo.playerId] = new List<MarkInfo> { this };
-
-            Logger.logWrite("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + playerInfo.markMessage);
-            Config.update();
-        }
-    
+    public class ShipInfo
+    {
+        public string nameCn { get; set; }
+        public string nameEnglish { get; set; }
+        public int level { get; set; }
+        public string shipType { get; set; }
+        public string country { get; set; }
+        public string shipIndex { get; set; }
+        public string groupType { get; set; }
     }
 }

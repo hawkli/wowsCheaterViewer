@@ -58,7 +58,7 @@ namespace 郭楠查看器
         {
             Config.init();
             rootPath.Text = Config.wowsRootPath;
-            checkUpdate();
+            //checkUpdate();
             watchRepFolder();
         }
         private void checkUpdate()//检测客户端升级
@@ -68,7 +68,8 @@ namespace 郭楠查看器
                 if (Directory.Exists(updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
                     Directory.Delete(updateFolderPath, true);
                 string releaseCheckUrl = "https://gitee.com/api/v5/repos/bbaoqaq/wowsCheaterViewer/releases/latest";
-                JObject releaseCheckResurnJson = apiClient.GetClient(releaseCheckUrl);
+                string releaseCheckResurnStr = apiClient.GetClientAsync(releaseCheckUrl).Result;
+                JObject releaseCheckResurnJson = JObject.Parse(releaseCheckResurnStr);
 
                 if (releaseCheckResurnJson["tag_name"].ToString() == visionTag)
                 {
@@ -210,8 +211,7 @@ namespace 郭楠查看器
                     foreach (playerInfo playerInfo in this.team2.Items)
                     {
                         playerInfo.markMessage = markMessage;
-                        MarkInfo MarkInfo = new MarkInfo();
-                        MarkInfo.addMarkInfo(playerInfo);
+                        Config.addMarkInfo(playerInfo);
                         updateTeam2.Add(playerInfo);
                     }
                     Dispatcher.Invoke(() =>
@@ -233,7 +233,7 @@ namespace 郭楠查看器
             {
                 try
                 {
-                    playerInfo playerInfo = parsePlayerJson(JToken.Parse(playerStr));
+                    playerInfo playerInfo = parsePlayerJson(new playerInfo(),JToken.Parse(playerStr));
                     PropertyInfo[] properties = playerInfo.GetType().GetProperties();
                     string outputStr = null;
                     for (int i = 0; i < properties.Count(); i++)
@@ -258,10 +258,7 @@ namespace 郭楠查看器
                 logShow("更新玩家标记失败，未能定位到玩家所在队伍");
 
             if (currentPlayerInfo != null)
-            {
-                MarkInfo MarkInfo = new MarkInfo();
-                MarkInfo.addMarkInfo(currentPlayerInfo);
-            }
+                Config.addMarkInfo(currentPlayerInfo);
         }
 
 
@@ -343,13 +340,14 @@ namespace 郭楠查看器
                             reflashBtn.IsEnabled = false;
                             readRepBtn.IsEnabled = false;
                             markEnemyBtn.IsEnabled = false;
+                            watcher.EnableRaisingEvents = false;//先停止监控
                         });
                         Stopwatch sw = new Stopwatch();
                         sw.Start();
                         
                         List<playerInfo> playerInfo_team1 = new List<playerInfo>();
                         List<playerInfo> playerInfo_team2 = new List<playerInfo>();
-                        List<string> failedList = new List<string>();
+                        int failedList = 0;
                         JArray playerJArray = JArray.FromObject(infoJson["vehicles"]);
                         Int32 readCount = 0;
 
@@ -359,29 +357,38 @@ namespace 郭楠查看器
                         {
                             JToken item = playerJArray[i];
                             playerInfo playerInfo = new playerInfo();
-                            string playerName = null;
                             try
                             {
-                                playerName = item["name"].ToString();
-                                playerInfo = parsePlayerJson(item);
+                                playerInfo = parsePlayerJson(playerInfo, item);
 
                                 //0是用户，1是己方，2是敌方
-                                if (Convert.ToInt32(item["relation"]) == 0 && playerInfo.clanId == "7000004849")
+                                if (playerInfo.relation == 0 && playerInfo.clanId == "7000004849")
                                 {
                                     MessageBox.Show("此插件禁止[CV-山东]军团用户使用");
                                     throw new Exception("黑名单用户");
                                 }
-                                    
-                                if (Convert.ToInt32(item["relation"]) == 1 || Convert.ToInt32(item["relation"]) == 0)
+                                if (playerInfo.relation == 1 || playerInfo.relation == 0)
+                                {
                                     playerInfo_team1.Add(playerInfo);
+                                    Dispatcher.Invoke(() =>
+                                    {
+                                        team1.ItemsSource = playerInfo_team1;
+                                    });
+                                }
                                 else
+                                {
                                     playerInfo_team2.Add(playerInfo);
+                                    Dispatcher.Invoke(() =>
+                                    {
+                                        team2.ItemsSource = playerInfo_team2;
+                                    });
+                                }
                             }
                             catch(Exception ex)
                             {
                                 if (ex.Message.Contains("黑名单用户"))
                                     throw ex;
-                                failedList.Add(playerName);
+                                failedList++;
                                 Logger.logWrite("玩家信息读取失败，"+ex.Message+Environment.NewLine+item.ToString());
                             }
                             finally
@@ -400,7 +407,7 @@ namespace 郭楠查看器
                         });
 
                         sw.Stop();
-                        logShow("已成功读取对局文件，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒" + (failedList.Count == 0 ? "" : "，以下玩家读取失败：" + string.Join(",", failedList)));
+                        logShow("已成功读取对局文件，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒" + (failedList == 0 ? "" : "，有"+ failedList.ToString() + "个玩家读取失败"));
                         sw.Reset();
                     }
                     catch (Exception ex)
@@ -415,117 +422,92 @@ namespace 郭楠查看器
                             reflashBtn.IsEnabled = true;
                             readRepBtn.IsEnabled = true;
                             markEnemyBtn.IsEnabled = true;
+                            watcher.EnableRaisingEvents = Config.watchFlag;//恢复监视
                         });
                     }
                 });
             };
         }
-        private playerInfo parsePlayerJson(JToken item)//解析单个玩家的json数据
+        private playerInfo parsePlayerJson(playerInfo playerInfo, JToken item)//解析单个玩家的json数据
         {
-            playerInfo playerInfo = new playerInfo();
-            playerInfo.name = System.Text.RegularExpressions.Regex.Unescape(item["name"].ToString());
-            playerInfo.shipId = item["shipId"].ToString();
-            string hiddenMessage = "hidden";
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
 
-            //取玩家id
-            JObject result_getPlayerId = apiClient.GetPlayerId(playerInfo.name);
-            playerInfo.playerId = result_getPlayerId["data"][0]["spa_id"].ToString();
-            Boolean isHidden = Convert.ToBoolean(result_getPlayerId["data"][0]["hidden"]);
+            PlayerGameInfoInRep PlayerGameInfoInRep;
+            try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(item.ToString()); } 
+            catch(Exception ex) { throw new Exception("解析rep中的玩家信息失败" + ex.Message); }
 
+            playerInfo.SetBasePlayerInfo(PlayerGameInfoInRep);//从rep里的文本获取基础信息
+            playerInfo.GetPlayerId();//取玩家id
+            playerInfo.GetBattleInfo_withBattleType("pvp");//获取pvp数据
+            playerInfo.GetBattleInfo_withBattleType("rank_solo");//获取rank数据
+            playerInfo.GetClanInfo();//获取军团数据
+            playerInfo.GetShipInfo();//获取船数据
+            playerInfo.GetBanInfo();//获取ban信息
+            playerInfo.GetMarkInfo();//获取标记信息
+
+            /*
+            //并行线程太多，反而比不并行来的慢
             Parallel.Invoke(
-                () =>//根据船id获取船信息
+                () =>//获取pvp数据
                 {
-                    JObject result_shipInfo = apiClient.GetShipInfo(playerInfo.shipId);
-                    //解析船信息
-                    if (result_shipInfo != null)
-                    {
-                        playerInfo.shipLevel_int = Convert.ToInt32(result_shipInfo["data"]["level"]);
-                        playerInfo.shipName = result_shipInfo["data"]["nameCn"].ToString();
-                        playerInfo.shipType = result_shipInfo["data"]["shipType"].ToString();
-                        playerInfo.setShipSort();
-                    }
+                    Stopwatch sw_step = new Stopwatch();
+                    sw_step.Start();
+                    logShow("玩家" + playerInfo.playerId + "pvp查询开始");
+                    playerInfo.GetBattleInfo_withBattleType("pvp");
+                    sw_step.Stop();
+                    logShow("玩家" + playerInfo.playerId + "pvp查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 },
-                () =>//根据玩家id和船id获取排行，顺便帮雨季收集玩家信息
+                () =>//获取rank数据
                 {
-                    JObject result_getPlayerShipRankSort = apiClient.GetPlayerShipRankSort(playerInfo.playerId, playerInfo.shipId);
+                    Stopwatch sw_step = new Stopwatch();
+                    sw_step.Start();
+                    logShow("玩家" + playerInfo.playerId + "rank查询开始");
+                    playerInfo.GetBattleInfo_withBattleType("rank_solo");
+                    sw_step.Stop();
+                    logShow("玩家" + playerInfo.playerId + "rank查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 },
-                () =>//根据玩家id获取yuyuko的ban信息
+                () =>//获取军团数据
                 {
-                    JObject result_getplayerBanInfo_yuyuko = apiClient.GetPlayerBanInfo_yuyuko(playerInfo.playerId);
-                    //解析yuyuko ban信息
-                    if (result_getplayerBanInfo_yuyuko != null)
-                    {
-                        //解析ban信息
-                        playerInfo.banMatch_fullStr = result_getplayerBanInfo_yuyuko["data"]["voList"].ToString();
-                        playerInfo.banColor = "White";
-                        List<Int32> banMatch_matchCountList = new List<Int32>();
-                        foreach (JToken banInfo in result_getplayerBanInfo_yuyuko["data"]["voList"] as JArray) //将每一项的封禁匹配数加到list里
-                            banMatch_matchCountList.Add(Convert.ToInt32(banInfo["banNameNamesake"]));
-                        if (banMatch_matchCountList.Contains(1))//如果有匹配值是1的，标记为红色
-                            playerInfo.banColor = "Red";
-                        playerInfo.banMatch = string.Join(",", banMatch_matchCountList);
-                    }
+                    Stopwatch sw_step = new Stopwatch();
+                    sw_step.Start();
+                    logShow("玩家" + playerInfo.playerId + "军团查询开始");
+                    playerInfo.GetClanInfo();
+                    sw_step.Stop();
+                    logShow("玩家" + playerInfo.playerId + "军团查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 },
-                () =>//根据玩家id获取官方接口和yuyuko机器人的概览
+                () =>//获取船数据
                 {
-                    if (!isHidden)
-                    {
-                        //JObject result_getplayerInfo_official = apiClient.GetPlayerInfo_official(playerInfo.playerId);
-                        JObject result_getplayerInfo_yuyuko = apiClient.GetPlayerInfo_yuyuko(playerInfo.playerId);
-                        if (result_getplayerInfo_yuyuko != null)
-                        {
-
-                            playerInfo.battleCount_pvp = result_getplayerInfo_yuyuko["data"]["pvp"]["battles"].ToString();
-                            playerInfo.winRate_pvp = result_getplayerInfo_yuyuko["data"]["pvp"]["wins"].ToString() + "%";
-                            playerInfo.battleCount_rank = result_getplayerInfo_yuyuko["data"]["rankSolo"]["battles"].ToString();
-                            playerInfo.winRate_rank = result_getplayerInfo_yuyuko["data"]["rankSolo"]["wins"].ToString() + "%";
-                            playerInfo.playerPrColor = result_getplayerInfo_yuyuko["data"]["pr"]["color"].ToString();
-                            //解析军团信息
-                            if (!string.IsNullOrEmpty(result_getplayerInfo_yuyuko["data"]["clanInfo"]["tag"].ToString()))
-                            {
-                                playerInfo.clanTag = "[" + result_getplayerInfo_yuyuko["data"]["clanInfo"]["tag"].ToString() + "]";
-                                playerInfo.clanColor = result_getplayerInfo_yuyuko["data"]["clanInfo"]["colorRgb"].ToString();
-                                playerInfo.clanId = result_getplayerInfo_yuyuko["data"]["clanInfo"]["clanId"].ToString();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        playerInfo.winRate_pvp = hiddenMessage;
-                        playerInfo.winRate_rank = hiddenMessage;
-                    }
-                }, 
-                () =>//根据船id获取yuyuko机器人中的船信息和玩家单船信息
+                    Stopwatch sw_step = new Stopwatch();
+                    sw_step.Start();
+                    logShow("玩家" + playerInfo.playerId + "船查询开始");
+                    playerInfo.GetShipInfo();
+                    sw_step.Stop();
+                    logShow("玩家" + playerInfo.playerId + "船查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
+                },
+                () =>//获取ban信息
                 {
-                    if (!isHidden)
-                    {
-                        JObject result_getPlayerShipInfo_yuyuko = apiClient.GetPlayerShipInfo_yuyuko(playerInfo.playerId, playerInfo.shipId);
-                        //解析玩家单船信息
-                        if (result_getPlayerShipInfo_yuyuko != null)
-                        {
-                            playerInfo.battleCount_ship = result_getPlayerShipInfo_yuyuko["data"]["shipInfo"]["battles"].ToString();
-                            playerInfo.winRate_ship = result_getPlayerShipInfo_yuyuko["data"]["shipInfo"]["wins"].ToString() + "%";
-                        }
-                    }
-                    else
-                    {
-                        playerInfo.winRate_ship = hiddenMessage;
-                    }
-                }, 
-                () =>//检查配置文件中是否有对该玩家的标记信息，并赋值
+                    Stopwatch sw_step = new Stopwatch();
+                    sw_step.Start();
+                    logShow("玩家" + playerInfo.playerId + "ban查询开始");
+                    playerInfo.GetBanInfo();
+                    sw_step.Stop();
+                    logShow("玩家" + playerInfo.playerId + "ban查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
+                },
+                () =>//获取标记信息
                 {
-                    if (Config.mark.Keys.Contains(playerInfo.playerId))
-                    {
-                        //取该玩家标记内容下，按时间排序最晚的那个信息
-                        MarkInfo MarkInfo = Config.mark[playerInfo.playerId].OrderByDescending(i => i.markTime).First();
-                        playerInfo.markMessage = MarkInfo.markMessage;
-                        playerInfo.lastMarkMessage = "上次标记时间："+ MarkInfo.markTime + Environment.NewLine+
-                                                     "上次标记时的军团："+ MarkInfo.clanTag + Environment.NewLine +
-                                                     "上次标记时的名称：" + MarkInfo.name + Environment.NewLine +
-                                                     "上次标记时的内容：" + MarkInfo.markMessage;
-                    }
+                    Stopwatch sw_step = new Stopwatch();
+                    sw_step.Start();
+                    logShow("玩家" + playerInfo.playerId + "mark查询开始");
+                    playerInfo.GetMarkInfo();
+                    sw_step.Stop();
+                    logShow("玩家" + playerInfo.playerId + "mark查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 }
             );
+            */
+            sw.Stop();
+            logShow("玩家"+playerInfo.playerId+"查询完成，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒");
+            sw.Reset();
             return playerInfo;
         }
     }
