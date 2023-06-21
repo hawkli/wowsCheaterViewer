@@ -368,21 +368,9 @@ namespace 郭楠查看器
                                     throw new Exception("黑名单用户");
                                 }
                                 if (playerInfo.relation == 1 || playerInfo.relation == 0)
-                                {
                                     playerInfo_team1.Add(playerInfo);
-                                    Dispatcher.Invoke(() =>
-                                    {
-                                        team1.ItemsSource = playerInfo_team1;
-                                    });
-                                }
                                 else
-                                {
                                     playerInfo_team2.Add(playerInfo);
-                                    Dispatcher.Invoke(() =>
-                                    {
-                                        team2.ItemsSource = playerInfo_team2;
-                                    });
-                                }
                             }
                             catch(Exception ex)
                             {
