@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace 郭楠查看器
+namespace wowsCheaterViewer
 {
     class Logger
     {

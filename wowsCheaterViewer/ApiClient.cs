@@ -11,7 +11,7 @@ using System.Windows;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace 郭楠查看器
+namespace wowsCheaterViewer
 {
     public class apiClient
     {

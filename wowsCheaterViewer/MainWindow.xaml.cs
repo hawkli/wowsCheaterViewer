@@ -16,7 +16,7 @@ using System.Net;
 using System.IO.Compression;
 using Microsoft.VisualBasic;
 
-namespace 郭楠查看器
+namespace wowsCheaterViewer
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml

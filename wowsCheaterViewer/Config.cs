@@ -9,7 +9,7 @@ using System.IO;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using System.Windows.Shapes;
 
-namespace 郭楠查看器
+namespace wowsCheaterViewer
 {
     public class Config
     {

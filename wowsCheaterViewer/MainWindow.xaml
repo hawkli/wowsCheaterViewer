@@ -1,11 +1,11 @@
-﻿<Window x:Class="郭楠查看器.MainWindow"
+﻿<Window x:Class="wowsCheaterViewer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:郭楠查看器"
+        xmlns:local="clr-namespace:wowsCheaterViewer"
         mc:Ignorable="d"
-        Title="郭楠查看器" Height="600" Width="1000" Loaded="MainWindowLoaded">
+        Title="wowsCheaterViewer" Height="600" Width="1000" Loaded="MainWindowLoaded">
 
     <Grid>
         <Grid.RowDefinitions>

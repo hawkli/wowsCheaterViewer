@@ -1,7 +1,7 @@
-﻿<Application x:Class="郭楠查看器.App"
+﻿<Application x:Class="wowsCheaterViewer.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:郭楠查看器"
+             xmlns:local="clr-namespace:wowsCheaterViewer"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
          

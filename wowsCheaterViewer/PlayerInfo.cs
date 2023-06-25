@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace 郭楠查看器
+namespace wowsCheaterViewer
 {
     public class playerInfo
     {

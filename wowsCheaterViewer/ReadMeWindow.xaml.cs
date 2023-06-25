@@ -14,7 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace 郭楠查看器
+namespace wowsCheaterViewer
 {
     /// <summary>
     /// ReadMeWindow.xaml 的交互逻辑

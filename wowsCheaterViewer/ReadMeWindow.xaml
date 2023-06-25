@@ -1,9 +1,9 @@
-﻿<Window x:Class="郭楠查看器.ReadMeWindow"
+﻿<Window x:Class="wowsCheaterViewer.ReadMeWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:郭楠查看器"
+        xmlns:local="clr-namespace:wowsCheaterViewer"
         mc:Ignorable="d"
         Title="使用免责说明" Height="350" Width="550" ResizeMode="NoResize">
     <Grid ShowGridLines="True">
@@ -14,7 +14,7 @@
 
         <TextBlock TextWrapping="Wrap" Grid.Row="0" 
                    Text="
-战舰世界国服，挂比查看器（功能类似海猴查看器/Monitor）  &#13;
+战舰世界国服，wowsCheaterViewer（功能类似海猴查看器/Monitor）  &#13;
 1、本程序目前仅支持国服  &#13;
 2、本程序数据来源于国服官方接口与yuyuko机器人接口  &#13;
 3、功能使用说明：  &#13;
