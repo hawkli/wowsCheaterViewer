@@ -9,6 +9,7 @@ using System.Text;
 using System.Web;
 using System.Windows;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace 郭楠查看器
 {
@@ -23,7 +24,7 @@ namespace 郭楠查看器
 
         //battleType=[basic,pve,pvp,pvp_solo,pvp_div2,pvp_div3,rank_old_solo,rank_solo,rank_div2,rank_div3,seasons]
 
-        public async Task<String> GetClientAsync(string url)//调用get接口，需要url
+        public async Task<string> GetClientAsync(string url)//调用get接口，需要url
         {
             string apiResult_str = null;
             int code = 0;
@@ -40,7 +41,7 @@ namespace 郭楠查看器
 
             return apiResult_str;
         }
-        public async Task<String> PostClientAsync(string url, Dictionary<string, string>? bodyDictionary, Dictionary<string, string>? filePaths)//调用post接口，需要url，jsonBody和file选填
+        public async Task<string> PostClientAsync(string url, string? bodyString, Dictionary<string, string>? filePaths)//调用post接口，需要url，jsonBody和file选填
         {
             string apiResult_str = null;
             int code = 0;
@@ -48,10 +49,10 @@ namespace 郭楠查看器
             {
                 HttpClient HttpClient = new HttpClient();
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, url);
-                if (bodyDictionary != null)
+                if (!string.IsNullOrEmpty(bodyString))
                 {
                     //处理bodyJson
-                    StringContent content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(bodyDictionary), Encoding.UTF8, "application/json");
+                    StringContent content = new StringContent(bodyString, Encoding.UTF8, "application/json");
                     request.Content = content;
                 }
                 else if (filePaths != null)
@@ -59,7 +60,13 @@ namespace 郭楠查看器
                     //处理文件
                     MultipartFormDataContent content = new MultipartFormDataContent();
                     foreach (KeyValuePair<string, string> filePath in filePaths)
-                        content.Add(new StreamContent(File.OpenRead(filePath.Value)), filePath.Key, filePath.Value);
+                    {
+                        Stream fs = new FileStream(filePath.Value, FileMode.Open, FileAccess.Read);
+                        byte[] data = new byte[fs.Length];
+                        fs.Read(data, 0, data.Length);
+                        fs.Close();
+                        content.Add(new ByteArrayContent(data), filePath.Key, filePath.Value);
+                    }
                     request.Content = content;
                 }
                 HttpResponseMessage response = await HttpClient.SendAsync(request);
@@ -89,58 +96,62 @@ namespace 郭楠查看器
                 throw new Exception("Api Connection Failed. Code:" + code.ToString());
         }
 
-        public String GetPlayerId(string playerName)//通过玩家名称获取玩家id
+        public string GetPlayerId(string playerName)//通过玩家名称获取玩家id
         {
             string url = address_official + "/api/accounts/search/autocomplete/" + Uri.EscapeDataString(playerName);
             return GetClientAsync(url).Result;
         }
-        public String GetPlayerInfo_official(string playerId)//通过玩家id获取官方的玩家信息
+        public string GetPlayerInfo_official(string playerId)//通过玩家id获取官方的玩家信息
         {
             string url = address_official + "/api/accounts/" + playerId;
             return GetClientAsync(url).Result;
         }
-        public String GetPalyersShipsInfo_official(string playerId, string battleType)//通过玩家id获取官方的玩家船信息
+        public string GetPalyersShipsInfo_official(string playerId, string battleType)//通过玩家id获取官方的玩家船信息
         {
             string url = address_official + "/api/accounts/" + playerId + "/ships/" + battleType.ToLower();
             return GetClientAsync(url).Result;
         }
-        public String GetPalyersClansInfo_official(string playerId)//通过玩家id获取官方的玩家军团信息
+        public string GetPalyersClansInfo_official(string playerId)//通过玩家id获取官方的玩家军团信息
         {
             string url = address_official + "/api/accounts/" + playerId + "/clans";
             return GetClientAsync(url).Result;
         }
-        public String GetPlayerInfo_yuyuko(string playerId)//通过玩家id获取yuyuko(old)的玩家信息
+        public string GetPlayerInfo_yuyuko(string playerId)//通过玩家id获取yuyuko的玩家信息
         {
             string url = address_yuyukoWowsApi_域名3 + "/public/wows/account/user/info?server=cn&accountId=" + playerId;
             return GetClientAsync(url).Result;
         }
-        public String GetPlayerShipInfo_yuyuko(string playerId, string shipId)//通过玩家id和船id获取yuyuko(old)的玩家单船信息
+        public string GetPlayerShipInfo_yuyuko(string playerId, string shipId)//通过玩家id和船id获取yuyuko(old)的玩家单船信息
         {
             string url = address_yuyukoWowsApi_域名3 + "/public/wows/account/ship/info?accountId=" + playerId + "&server=cn&shipId=" + shipId;
             return GetClientAsync(url).Result;
         }
-        public String GetPlayerBanInfo_yuyuko(string playerId)//通过玩家id获取yuyuko的ban信息
+        public string GetPlayerBanInfo_yuyuko(string playerId)//通过玩家id获取yuyuko的ban信息
         {
             string url = address_yuyukoWowsApi_域名2 + "/public/wows/ban/cn/user";
             Dictionary<string, string> contantDictionary = new Dictionary<string, string>();
             contantDictionary["accountId"] = playerId;
-            return PostClientAsync(url, contantDictionary, null).Result;
+            return PostClientAsync(url, JsonConvert.SerializeObject(contantDictionary), null).Result;
         }
-        public String GetShipInfo(string shipId)//通过船id获取yuyuko的船信息
+        public string GetShipInfo(string shipId)//通过船id获取yuyuko的船信息
         {
             string url = address_yuyukoWowsApi_域名2 + "/public/wows/encyclopedia/ship/info?shipId=" + shipId;
             return GetClientAsync(url).Result;
         }
-        public String GetPlayerShipRankSort(string playerId, string shipId)//通过玩家id和船id获取yuyuko的排行，顺便帮雨季收集玩家信息
+        public string GetPlayerShipRankSort(string playerId, string shipId)//通过玩家id和船id获取yuyuko的排行，顺便帮雨季收集玩家信息
         {
             string url = address_yuyuko战舰世界API平台接口处理与反向代理 + "/wows/rank/cn/sort/" + playerId + "/" + shipId;
             return GetClientAsync(url).Result;
         }
-
-        public String GetParsedPlayerInfo_yuyuko(string playerId, string shipId, string battleType, string uploadFilePath, string clanFilePath)//用官网返回的信息写入文件，让yuyuko解析
+        public string GetParsedPlayerInfo_yuyuko(string playerId, string shipId, string battleType, string uploadFilePath, string clanFilePath)//用官网返回的信息写入文件，让yuyuko解析
         {
             string url = address_yuyuko战舰世界API平台接口处理与反向代理 + "/process/wows/user/info/cn/upload/vortex/data/" + battleType.ToUpper() + "/battle/" + playerId + "/query/" + shipId;
             return PostClientAsync(url, null, new Dictionary<string, string> { { "files", uploadFilePath }, { "clan", clanFilePath } }).Result;
+        }
+        public void sendYuyukoGameInfo(string yuyukoGameInfoStr)//数据提交给yuyuko
+        {
+            string url = address_yuyuko战舰世界API平台接口处理与反向代理 + "/upload/wows/game/player";
+            _ = PostClientAsync(url, yuyukoGameInfoStr, null);
         }
     }
 }

@@ -81,7 +81,7 @@ namespace 郭楠查看器
                     string updatalog = releaseCheckResurnJson["body"].ToString();
 
                     Boolean updataFlag = false;
-                    updataFlag = System.Windows.MessageBox.Show("检查到新版本，是否进行更新？"+Environment.NewLine+"更新内容：" + Environment.NewLine + updatalog, "更新提示", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
+                    updataFlag = MessageBox.Show("检查到新版本，是否进行更新？"+Environment.NewLine+"更新内容：" + Environment.NewLine + updatalog, "更新提示", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
                     if (updataFlag)
                     {
                         Config.watchFlag = false;
@@ -89,18 +89,18 @@ namespace 郭楠查看器
                         {
                             logShow("确认更新");
                             //确认能够转换GBK编码
-                            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
                             string updateZipFilePath = Path.Combine(updateFolderPath, releaseCheckResurnJson["assets"][0]["name"].ToString());
                             string downloadUrl = releaseCheckResurnJson["assets"][0]["browser_download_url"].ToString();
                             Directory.CreateDirectory(updateFolderPath);
                             //下载
-                            Boolean downloadFlag = false;
+                            bool downloadFlag = false;
                             using (var web = new WebClient())
                             {
                                 web.DownloadProgressChanged += (s, e) =>
                                 {
                                     string.Format("正在下载文件：{0}%  ({1}/{2})",
-                                        String.Format("{0:D2}", e.ProgressPercentage),
+                                        string.Format("{0:D2}", e.ProgressPercentage),
                                         e.BytesReceived,
                                         e.TotalBytesToReceive);
                                     logShow("正在下载："+e.ProgressPercentage.ToString()+"%");
@@ -233,18 +233,20 @@ namespace 郭楠查看器
             {
                 try
                 {
-                    playerInfo playerInfo = parsePlayerJson(new playerInfo(),JToken.Parse(playerStr));
+                    PlayerGameInfoInRep PlayerGameInfoInRep = new PlayerGameInfoInRep();
+                    try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(playerStr); }
+                    catch (Exception ex) { throw new Exception("解析rep中的玩家信息失败" + ex.Message); }
+
+                    playerInfo playerInfo = parsePlayerJson(new playerInfo(), PlayerGameInfoInRep);
                     PropertyInfo[] properties = playerInfo.GetType().GetProperties();
                     string outputStr = null;
                     for (int i = 0; i < properties.Count(); i++)
                         outputStr = outputStr + string.Format("{0,-20}", properties[i].Name) + ":" + properties[i].GetValue(playerInfo) + Environment.NewLine;
+
                     Logger.logWrite(outputStr);
                     MessageBox.Show(outputStr);
                 }
-                catch(Exception ex)
-                {
-                    MessageBox.Show("解析失败，"+ex.Message);
-                }
+                catch(Exception ex) { MessageBox.Show("解析失败，"+ex.Message); }
             }
         }
         private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置
@@ -260,7 +262,6 @@ namespace 郭楠查看器
             if (currentPlayerInfo != null)
                 Config.addMarkInfo(currentPlayerInfo);
         }
-
 
         private void watchRepFolder()//监控rep文件夹
         {
@@ -331,6 +332,9 @@ namespace 郭楠查看器
         {
             if (infoJson != null) 
             {
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
+                string exceptionMessage = null;
                 System.Threading.Tasks.Task.Run(() =>{
                     try
                     {
@@ -342,49 +346,44 @@ namespace 郭楠查看器
                             markEnemyBtn.IsEnabled = false;
                             watcher.EnableRaisingEvents = false;//先停止监控
                         });
-                        Stopwatch sw = new Stopwatch();
-                        sw.Start();
                         
                         List<playerInfo> playerInfo_team1 = new List<playerInfo>();
                         List<playerInfo> playerInfo_team2 = new List<playerInfo>();
+                        int readCount = 0;
                         int failedList = 0;
-                        JArray playerJArray = JArray.FromObject(infoJson["vehicles"]);
-                        Int32 readCount = 0;
+                        List<PlayerGameInfoInRep> PlayerGameInfoList = JsonConvert.DeserializeObject<List<PlayerGameInfoInRep>>(infoJson["vehicles"].ToString());
+                        
+                        yuyukoGameInfo yuyukoGameInfo = new yuyukoGameInfo();
+                        yuyukoGameInfo.SetTime(infoJson["dateTime"].ToString());
+                        yuyukoGameInfo.battleType = infoJson["matchGroup"].ToString();
 
                         //并行执行
-                        ParallelLoopResult parallelResult = Parallel.For(0, playerJArray.Count(), i =>
-                        //for(int i = 0; i < playerJArray.Count(); i++)
+                        ParallelLoopResult parallelResult = Parallel.For(0, PlayerGameInfoList.Count(), i =>
                         {
-                            JToken item = playerJArray[i];
                             playerInfo playerInfo = new playerInfo();
                             try
                             {
-                                playerInfo = parsePlayerJson(playerInfo, item);
-
-                                //0是用户，1是己方，2是敌方
-                                if (playerInfo.relation == 0 && playerInfo.clanId == "7000004849")
-                                {
-                                    MessageBox.Show("此插件禁止[CV-山东]军团用户使用");
-                                    throw new Exception("黑名单用户");
-                                }
-                                if (playerInfo.relation == 1 || playerInfo.relation == 0)
-                                    playerInfo_team1.Add(playerInfo);
-                                else
-                                    playerInfo_team2.Add(playerInfo);
+                                playerInfo = parsePlayerJson(playerInfo, PlayerGameInfoList[i]);
                             }
                             catch(Exception ex)
                             {
-                                if (ex.Message.Contains("黑名单用户"))
-                                    throw ex;
                                 failedList++;
-                                Logger.logWrite("玩家信息读取失败，"+ex.Message+Environment.NewLine+item.ToString());
+                                Logger.logWrite("玩家信息读取失败，" + ex.Message + Environment.NewLine + 
+                                    JsonConvert.SerializeObject(PlayerGameInfoList[i]).ToString());
                             }
                             finally
                             {
-                                readCount = readCount + 1;
-                                logShow(string.Format("正在读取对局信息({0}/{1})", 
-                                    readCount.ToString(), 
-                                    playerJArray.Count()));
+                                readCount++;
+                                yuyukoGameInfo.AddYuyukoPlayerInfo(playerInfo);
+                                
+                                if (playerInfo.relation == 1 || playerInfo.relation == 0)//0是用户，1是己方，2是敌方
+                                    playerInfo_team1.Add(playerInfo);
+                                else
+                                    playerInfo_team2.Add(playerInfo);
+
+                                logShow(string.Format("正在读取对局信息({0}/{1})",
+                                    readCount.ToString(),
+                                    PlayerGameInfoList.Count()));
                             }
                         });
                         //绑定给前台
@@ -393,17 +392,20 @@ namespace 郭楠查看器
                             team1.ItemsSource = playerInfo_team1.OrderByDescending(i => i.shipSort);
                             team2.ItemsSource = playerInfo_team2.OrderByDescending(i => i.shipSort);
                         });
+                        yuyukoGameInfo.SendInfoToYuyuko();
 
-                        sw.Stop();
-                        logShow("已成功读取对局文件，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒" + (failedList == 0 ? "" : "，有"+ failedList.ToString() + "个玩家读取失败"));
-                        sw.Reset();
+                        if (failedList > 0)
+                            exceptionMessage = "有" + failedList.ToString() + "个玩家读取失败";
                     }
                     catch (Exception ex)
                     {
-                        logShow("解析对局文件失败，" + ex.Message);
+                        exceptionMessage = ex.Message;
                     }
                     finally
                     {
+                        sw.Stop();
+                        logShow("已读取对局文件，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒" + (string.IsNullOrEmpty(exceptionMessage) ? "" : "，" + exceptionMessage));
+
                         //每次读取完成后启用刷新按钮
                         Dispatcher.Invoke(() =>
                         {
@@ -416,19 +418,17 @@ namespace 郭楠查看器
                 });
             };
         }
-        private playerInfo parsePlayerJson(playerInfo playerInfo, JToken item)//解析单个玩家的json数据
+        private playerInfo parsePlayerJson(playerInfo playerInfo, PlayerGameInfoInRep PlayerGameInfoInRep)//解析单个玩家的json数据
         {
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
-            PlayerGameInfoInRep PlayerGameInfoInRep;
-            try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(item.ToString()); } 
-            catch(Exception ex) { throw new Exception("解析rep中的玩家信息失败" + ex.Message); }
-
             playerInfo.SetBasePlayerInfo(PlayerGameInfoInRep);//从rep里的文本获取基础信息
             playerInfo.GetPlayerId();//取玩家id
+            playerInfo.SetEmptyClanFile();//写入空文件用于上传军团信息
             playerInfo.GetBattleInfo_withBattleType("pvp");//获取pvp数据
             playerInfo.GetBattleInfo_withBattleType("rank_solo");//获取rank数据
+            playerInfo.DeleteTempFiles();//删除临时文件
             playerInfo.GetClanInfo();//获取军团数据
             playerInfo.GetShipInfo();//获取船数据
             playerInfo.GetBanInfo();//获取ban信息
@@ -494,8 +494,7 @@ namespace 郭楠查看器
             );
             */
             sw.Stop();
-            logShow("玩家"+playerInfo.playerId+"查询完成，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒");
-            sw.Reset();
+            Logger.logWrite("玩家"+playerInfo.playerId+"查询完成，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒");
             return playerInfo;
         }
     }

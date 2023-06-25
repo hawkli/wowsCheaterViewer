@@ -44,7 +44,7 @@ namespace 郭楠查看器
                     try
                     {
                         //顺利读取
-                        mark = JsonConvert.DeserializeObject<Dictionary<String, List<MarkInfo>>>(configJson["mark"].ToString());
+                        mark = JsonConvert.DeserializeObject<Dictionary<string, List<MarkInfo>>>(configJson["mark"].ToString());
                     }
                     catch
                     {
@@ -57,7 +57,7 @@ namespace 郭楠查看器
                 }
 
                 if (configJson.ContainsKey("shipInfo"))
-                    shipInfo = JsonConvert.DeserializeObject<Dictionary<String, ShipInfo>>(configJson["shipInfo"].ToString());
+                    shipInfo = JsonConvert.DeserializeObject<Dictionary<string, ShipInfo>>(configJson["shipInfo"].ToString());
 
             }
             else
@@ -71,7 +71,7 @@ namespace 郭楠查看器
             lock (writerLock)
             {
                 StreamWriter sw = new StreamWriter(configPath);
-                sw.Write(Newtonsoft.Json.JsonConvert.SerializeObject(this).ToString());
+                sw.Write(JsonConvert.SerializeObject(this).ToString());
                 sw.Close();
             }
         }
@@ -94,9 +94,9 @@ namespace 郭楠查看器
             }
 
         }
-        private Boolean checkRootPath(string path)//检查游戏路径
+        private bool checkRootPath(string path)//检查游戏路径
         {
-            Boolean checkRootPath = false;
+            bool checkRootPath = false;
             if (!string.IsNullOrEmpty(path))
             {
                 string repFolderPath = System.IO.Path.Combine(path, "replays");
@@ -120,13 +120,18 @@ namespace 郭楠查看器
             MarkInfo.name = playerInfo.name;
             MarkInfo.markMessage = playerInfo.markMessage;
 
-            //已有玩家信息就增加，没有就新建
-            if (mark.Keys.Contains(playerInfo.playerId))
-                mark[playerInfo.playerId].Add(MarkInfo);
-            else
-                mark[playerInfo.playerId] = new List<MarkInfo> { MarkInfo };
+            //标记记录玩家的id，如果id未获取到，设为玩家名称
+            string markKey = playerInfo.playerId;
+            if (playerInfo.playerId == "0")
+                markKey = playerInfo.name;
 
-            Logger.logWrite("已更新标记玩家：" + playerInfo.playerId + "，标记内容：" + playerInfo.markMessage);
+            //已有玩家信息就增加，没有就新建
+            if (mark.Keys.Contains(markKey))
+                mark[markKey].Add(MarkInfo);
+            else
+                mark[markKey] = new List<MarkInfo> { MarkInfo };
+
+            Logger.logWrite("已更新标记玩家：" + markKey + "，标记内容：" + playerInfo.markMessage);
             update();
         }
 
