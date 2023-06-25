@@ -6,34 +6,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Windows.Automation.Peers;
 using System.IO;
 using System.Threading;
-using System.Collections.Specialized;
-using System.ComponentModel;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using static Microsoft.WindowsAPICodePack.Shell.PropertySystem.SystemProperties.System;
-using System.Web;
 using System.Diagnostics;
 using System.Windows.Threading;
-using System.Runtime.CompilerServices;
-using Microsoft.WindowsAPICodePack.Shell.Interop;
 using System.Reflection;
 using System.Net;
-using System.Security.Policy;
 using System.IO.Compression;
-using Path = System.IO.Path;
-using System.Reflection.Emit;
 using Microsoft.VisualBasic;
-using System.Net.Mail;
 
 namespace 郭楠查看器
 {
@@ -268,7 +249,7 @@ namespace 郭楠查看器
             if(Config.watchFlag)
             {
                 watcher.EnableRaisingEvents = false;//先停止监控
-                watcher.Path = System.IO.Path.Combine(Config.wowsRootPath, "replays");
+                watcher.Path = Path.Combine(Config.wowsRootPath, "replays");
                 watcher.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
                 watcher.Filter = "tempArenaInfo.json";
                 watcher.Created += (s, e) => 
