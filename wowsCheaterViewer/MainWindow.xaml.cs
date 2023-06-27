@@ -52,11 +52,6 @@ namespace wowsCheaterViewer
                         Directory.Delete(Config.updateFolderPath, true);
                     JObject releaseCheckResurnJson = JObject.Parse(t.Result);
                     string newestVisionTag = releaseCheckResurnJson["tag_name"].ToString();
-
-                    MessageBox.Show((newestVisionTag == Config.visionTag).ToString());
-                    MessageBox.Show(Config.ignoreVisionTag);
-                    MessageBox.Show((newestVisionTag == Config.ignoreVisionTag).ToString());
-
                     if (newestVisionTag == Config.visionTag || newestVisionTag == Config.ignoreVisionTag)
                     {
                         //如果tag和当前版本或忽略版本相同，则视为无需更新

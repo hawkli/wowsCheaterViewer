@@ -33,7 +33,15 @@ namespace wowsCheaterViewer
                 code = Convert.ToInt32(response.StatusCode);
                 checkApiResult(code, apiResult_str);
             }
-            catch (Exception ex) { Logger.logWrite(string.Format("get调用失败，url:{0};code:{1};result:{2};reason:{3}", url, code, apiResult_str, ex.Message)); }
+            catch (Exception ex) 
+            { 
+                Logger.logWrite(string.Format("get调用失败，url:{0};code:{1};result:{2};reason:{3}", url, code, apiResult_str, ex.Message));
+                if (url.Contains(address_yuyukoWowsApi_域名3))
+                {
+                    Logger.logWrite("更换域名重试yuyuko接口");
+                    apiResult_str = GetClientAsync(url.Replace(address_yuyukoWowsApi_域名3, address_yuyukoWowsApi_域名2)).Result;
+                }
+            }
 
             return apiResult_str;
         }
@@ -70,7 +78,15 @@ namespace wowsCheaterViewer
                 code = Convert.ToInt32(response.StatusCode);
                 checkApiResult(code, apiResult_str);
             }
-            catch (Exception ex) { Logger.logWrite(string.Format("get调用失败，url:{0};code:{1};result:{2};reason:{3}", url, code, apiResult_str, ex.Message)); }
+            catch (Exception ex)
+            {
+                Logger.logWrite(string.Format("get调用失败，url:{0};code:{1};result:{2};reason:{3}", url, code, apiResult_str, ex.Message));
+                if (url.Contains(address_yuyukoWowsApi_域名3))
+                {
+                    Logger.logWrite("更换域名重试yuyuko接口");
+                    apiResult_str = PostClientAsync(url.Replace(address_yuyukoWowsApi_域名3, address_yuyukoWowsApi_域名2), bodyString, filePaths).Result;
+                }
+            }
 
             return apiResult_str;
         }
@@ -124,14 +140,14 @@ namespace wowsCheaterViewer
         }
         public string GetPlayerBanInfo_yuyuko(string playerId)//通过玩家id获取yuyuko的ban信息
         {
-            string url = address_yuyukoWowsApi_域名2 + "/public/wows/ban/cn/user";
+            string url = address_yuyukoWowsApi_域名3 + "/public/wows/ban/cn/user";
             Dictionary<string, string> contantDictionary = new Dictionary<string, string>();
             contantDictionary["accountId"] = playerId;
             return PostClientAsync(url, JsonConvert.SerializeObject(contantDictionary), null).Result;
         }
         public string GetShipInfo(string shipId)//通过船id获取yuyuko的船信息
         {
-            string url = address_yuyukoWowsApi_域名2 + "/public/wows/encyclopedia/ship/info?shipId=" + shipId;
+            string url = address_yuyukoWowsApi_域名3 + "/public/wows/encyclopedia/ship/info?shipId=" + shipId;
             return GetClientAsync(url).Result;
         }
         public string GetPlayerShipRankSort(string playerId, string shipId)//通过玩家id和船id获取yuyuko的排行，顺便帮雨季收集玩家信息
