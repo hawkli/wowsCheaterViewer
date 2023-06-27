@@ -4,9 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace wowsCheaterViewer
 {
@@ -15,7 +12,7 @@ namespace wowsCheaterViewer
         public string name { get; set; }
         public string playerId { get; set; } = "0";//默认值给0，方便提供给yuyuko
         public string playerPrColor { get; set; } = "Gray";//默认灰色（隐藏战绩或读取失败）
-        public Boolean isHidden { get; set; }
+        public bool isHidden { get; set; }
         public int relation { get; set; }
 
 
@@ -127,12 +124,11 @@ namespace wowsCheaterViewer
 
         private string writeFile(string fileName, string fileBody)
         {
-            string saveFolder = "temp";
-            string saveFile = Path.Combine(saveFolder, fileName);
+            string saveFile = Path.Combine(Config.tempFolderPath, fileName);
             lock (writerLock)
             {
-                if (!Directory.Exists(saveFolder))
-                    Directory.CreateDirectory(saveFolder);
+                if (!Directory.Exists(Config.tempFolderPath))
+                    Directory.CreateDirectory(Config.tempFolderPath);
                 StreamWriter sw = new StreamWriter(saveFile);
                 sw.Write(fileBody);
                 sw.Close();
@@ -167,7 +163,7 @@ namespace wowsCheaterViewer
                     }
                 }
                 catch (Exception ex) { Logger.logWrite("无法读取玩家" + playerId + "的" + battleType + "信息，" + ex.Message); }
-                finally { if(!String.IsNullOrEmpty(infoFilePath_battleType)) tempFiles.Add(infoFilePath_battleType); }
+                finally { if(!string.IsNullOrEmpty(infoFilePath_battleType)) tempFiles.Add(infoFilePath_battleType); }
             }
             else
             {

@@ -4,12 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
-using System.Net;
 using System.Text;
-using System.Web;
-using System.Windows;
 using System.Threading.Tasks;
-using System.Windows.Input;
 
 namespace wowsCheaterViewer
 {
@@ -81,7 +77,7 @@ namespace wowsCheaterViewer
         private void checkApiResult(int code, string apiResult_str)
         {
             JObject apiResult = JObject.Parse(apiResult_str);
-            Boolean success = true;
+            bool success = true;
 
             if (code != 200)
                 success = false;

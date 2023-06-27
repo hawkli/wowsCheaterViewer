@@ -28,7 +28,6 @@ namespace wowsCheaterViewer
         private FileSystemWatcher watcher = new FileSystemWatcher();
         private apiClient apiClient = new apiClient();
         private string visionTag = "2023.06.08";
-        private string updateFolderPath = ".update";
 
         public MainWindow()
         {
@@ -39,41 +38,40 @@ namespace wowsCheaterViewer
         {
             Config.init();
             rootPath.Text = Config.wowsRootPath;
-            //checkUpdate();
+            checkUpdate();
             watchRepFolder();
         }
         private void checkUpdate()//检测客户端升级
         {
             try
             {
-                if (Directory.Exists(updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
-                    Directory.Delete(updateFolderPath, true);
                 string releaseCheckUrl = "https://gitee.com/api/v5/repos/bbaoqaq/wowsCheaterViewer/releases/latest";
-                string releaseCheckResurnStr = apiClient.GetClientAsync(releaseCheckUrl).Result;
-                JObject releaseCheckResurnJson = JObject.Parse(releaseCheckResurnStr);
-
-                if (releaseCheckResurnJson["tag_name"].ToString() == visionTag)
+                apiClient.GetClientAsync(releaseCheckUrl).ContinueWith(t =>
                 {
-                    Logger.logWrite("无需更新");
-                }
-                else
-                {
-                    Logger.logWrite("需要更新");
-                    string updatalog = releaseCheckResurnJson["body"].ToString();
+                    if (Directory.Exists(Config.updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
+                        Directory.Delete(Config.updateFolderPath, true);
+                    string releaseCheckResurnStr = t.Result;
+                    JObject releaseCheckResurnJson = JObject.Parse(releaseCheckResurnStr);
 
-                    Boolean updataFlag = false;
-                    updataFlag = MessageBox.Show("检查到新版本，是否进行更新？"+Environment.NewLine+"更新内容：" + Environment.NewLine + updatalog, "更新提示", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
-                    if (updataFlag)
+                    if (releaseCheckResurnJson["tag_name"].ToString() == visionTag)
                     {
-                        Config.watchFlag = false;
-                        System.Threading.Tasks.Task.Run(() =>
+                        Logger.logWrite("无需更新");
+                    }
+                    else
+                    {
+                        Logger.logWrite("需要更新");
+                        string updatalog = releaseCheckResurnJson["body"].ToString();
+
+                        bool updataFlag = false;
+                        updataFlag = MessageBox.Show("检查到新版本，是否进行更新？" + Environment.NewLine + "更新内容：" + Environment.NewLine + updatalog, "更新提示", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
+                        if (updataFlag)
                         {
                             logShow("确认更新");
                             //确认能够转换GBK编码
                             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-                            string updateZipFilePath = Path.Combine(updateFolderPath, releaseCheckResurnJson["assets"][0]["name"].ToString());
+                            string updateZipFilePath = Path.Combine(Config.updateFolderPath, releaseCheckResurnJson["assets"][0]["name"].ToString());
                             string downloadUrl = releaseCheckResurnJson["assets"][0]["browser_download_url"].ToString();
-                            Directory.CreateDirectory(updateFolderPath);
+                            Directory.CreateDirectory(Config.updateFolderPath);
                             //下载
                             bool downloadFlag = false;
                             using (var web = new WebClient())
@@ -84,23 +82,20 @@ namespace wowsCheaterViewer
                                         string.Format("{0:D2}", e.ProgressPercentage),
                                         e.BytesReceived,
                                         e.TotalBytesToReceive);
-                                    logShow("正在下载："+e.ProgressPercentage.ToString()+"%");
+                                    logShow("正在下载：" + e.ProgressPercentage.ToString() + "%");
                                 };
-                                web.DownloadFileCompleted += (s, e) =>
-                                {
-                                    downloadFlag = true;
-                                };
+                                web.DownloadFileCompleted += (s, e) => { downloadFlag = true; };
                                 web.DownloadFileAsync(new Uri(downloadUrl), updateZipFilePath);
                             }
                             while (!downloadFlag) ;
                             Logger.logWrite("下载完成");
                             //解压
-                            ZipFile.ExtractToDirectory(updateZipFilePath, updateFolderPath, Encoding.GetEncoding("GBK"));
+                            ZipFile.ExtractToDirectory(updateZipFilePath, Config.updateFolderPath, Encoding.GetEncoding("GBK"));
                             File.Delete(updateZipFilePath);
                             logShow("解压完成");
                             //生成更新批处理脚本
-                            string updateBatPath = Path.Combine(updateFolderPath, "update.bat");
-                            string copyFromFolderPath = Directory.GetDirectories(updateFolderPath).First();//取解压后的根文件夹
+                            string updateBatPath = Path.Combine(Config.updateFolderPath, "update.bat");
+                            string copyFromFolderPath = Directory.GetDirectories(Config.updateFolderPath).First();//取解压后的根文件夹
                             string copyToFolderPath = Environment.CurrentDirectory;//取当前文件夹
                             string processName = Assembly.GetExecutingAssembly().GetName().Name;//取项目名称，也是进程名称
                             string batStr = @"chcp 65001" + Environment.NewLine +//用中文编码
@@ -121,13 +116,14 @@ namespace wowsCheaterViewer
                             Process.WaitForExit();
                             //如果没有正常启动则报错
                             throw new Exception("批处理脚本启动失败");
-                        });
+                        }
+                        else
+                        {
+                            logShow("用户取消更新");
+                        }
                     }
-                    else
-                    {
-                        logShow("用户取消更新");
-                    }
-                }
+                });
+                //string releaseCheckResurnStr = apiClient.GetClientAsync(releaseCheckUrl).Result;
             }
             catch (Exception ex)
             {
@@ -161,7 +157,7 @@ namespace wowsCheaterViewer
             if (Config.watchFlag)
             {
                 logShow("刷新当前对局数据");
-                teamView(readTempJson());
+                parseGame(readTempJson());
             }
             else
             {
@@ -179,7 +175,7 @@ namespace wowsCheaterViewer
             dlg.InitialDirectory = defaultPath;
             dlg.Filters.Add(new CommonFileDialogFilter("战舰世界回放文件", "*.wowsreplay"));
             if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
-                teamView(readRepJson(dlg.FileName));
+                parseGame(readRepJson(dlg.FileName));
         }
         private void markEnemyEvent(object sender, RoutedEventArgs e)//标记所有敌方
         {
@@ -210,24 +206,26 @@ namespace wowsCheaterViewer
         private void debugPlayerEvent(object sender, RoutedEventArgs e)//单个玩家调试
         {
             string playerStr = Interaction.InputBox("调试文本："+ Environment.NewLine + "（作者用来调试的，想用这个功能的话请参考说明文档）", "提示");
-            if(!string.IsNullOrEmpty(playerStr)) 
+            string outputStr = null;
+            if (!string.IsNullOrEmpty(playerStr)) 
             {
                 try
                 {
                     PlayerGameInfoInRep PlayerGameInfoInRep = new PlayerGameInfoInRep();
                     try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(playerStr); }
-                    catch (Exception ex) { throw new Exception("解析rep中的玩家信息失败" + ex.Message); }
+                    catch (Exception ex) { throw new Exception("输入文本有误：" + ex.Message); }
 
-                    playerInfo playerInfo = parsePlayerJson(new playerInfo(), PlayerGameInfoInRep);
+                    playerInfo playerInfo = parsePlayer(new playerInfo(), PlayerGameInfoInRep);
                     PropertyInfo[] properties = playerInfo.GetType().GetProperties();
-                    string outputStr = null;
                     for (int i = 0; i < properties.Count(); i++)
                         outputStr = outputStr + string.Format("{0,-20}", properties[i].Name) + ":" + properties[i].GetValue(playerInfo) + Environment.NewLine;
-
+                }
+                catch(Exception ex) { outputStr = "解析失败，" +ex.Message; }
+                finally
+                {
                     Logger.logWrite(outputStr);
                     MessageBox.Show(outputStr);
                 }
-                catch(Exception ex) { MessageBox.Show("解析失败，"+ex.Message); }
             }
         }
         private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置
@@ -255,7 +253,7 @@ namespace wowsCheaterViewer
                 watcher.Created += (s, e) => 
                 {
                     logShow("检测到对局开始，正在读取");
-                    teamView(readTempJson());
+                    parseGame(readTempJson());
                 };
                 watcher.Deleted += (s, e) => 
                 {
@@ -309,7 +307,7 @@ namespace wowsCheaterViewer
             }
             return infoJson;
         }
-        private void teamView(JObject infoJson)//解析对局json，把队伍信息绑定到前台表格中
+        private void parseGame(JObject infoJson)//解析对局json，把队伍信息绑定到前台表格中
         {
             if (infoJson != null) 
             {
@@ -344,7 +342,7 @@ namespace wowsCheaterViewer
                             playerInfo playerInfo = new playerInfo();
                             try
                             {
-                                playerInfo = parsePlayerJson(playerInfo, PlayerGameInfoList[i]);
+                                playerInfo = parsePlayer(playerInfo, PlayerGameInfoList[i]);
                             }
                             catch(Exception ex)
                             {
@@ -399,7 +397,7 @@ namespace wowsCheaterViewer
                 });
             };
         }
-        private playerInfo parsePlayerJson(playerInfo playerInfo, PlayerGameInfoInRep PlayerGameInfoInRep)//解析单个玩家的json数据
+        private playerInfo parsePlayer(playerInfo playerInfo, PlayerGameInfoInRep PlayerGameInfoInRep)//解析单个玩家的json数据
         {
             Stopwatch sw = new Stopwatch();
             sw.Start();

@@ -3,11 +3,8 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using System.Windows.Shapes;
 
 namespace wowsCheaterViewer
 {
@@ -24,7 +21,9 @@ namespace wowsCheaterViewer
 
         //config，不写入文件的属性
         Logger Logger = Logger.Instance;
-        public static Boolean watchFlag = false;
+        public static bool watchFlag = false;
+        public static string updateFolderPath = ".update";
+        public static string tempFolderPath = ".temp";
         private static string configPath = @"config.json";
         private static readonly object writerLock = new object();
 
