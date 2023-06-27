@@ -449,6 +449,7 @@ namespace wowsCheaterViewer
             playerInfo.GetShipInfo();//获取船数据
             playerInfo.GetBanInfo();//获取ban信息
             playerInfo.GetMarkInfo();//获取标记信息
+            playerInfo.CheckLoadFailed();//检查数据是否抓取成功，失败则换一个方案抓取数据
 
             /*
             //并行线程太多，反而比不并行来的慢

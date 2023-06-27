@@ -28,6 +28,8 @@ namespace wowsCheaterViewer
             {
                 HttpClient HttpClient = new HttpClient();
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+                if(url.Contains(address_yuyukoWowsApi_域名3))//yuyuko新域名接口需要加一个headers，老的则不用
+                    request.Headers.Add("Yuyuko-Client-Type", "WEB;01");
                 HttpResponseMessage response = await HttpClient.SendAsync(request);
                 apiResult_str = response.Content.ReadAsStringAsync().Result;
                 code = Convert.ToInt32(response.StatusCode);
@@ -73,6 +75,8 @@ namespace wowsCheaterViewer
                     }
                     request.Content = content;
                 }
+                if (url.Contains(address_yuyukoWowsApi_域名3))//yuyuko新域名接口需要加一个headers，老的则不用
+                    request.Headers.Add("Yuyuko-Client-Type", "WEB;01");
                 HttpResponseMessage response = await HttpClient.SendAsync(request);
                 apiResult_str = response.Content.ReadAsStringAsync().Result;
                 code = Convert.ToInt32(response.StatusCode);
