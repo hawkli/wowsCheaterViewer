@@ -49,7 +49,7 @@ namespace wowsCheaterViewer
                     num -= nums[i];
                 }
             }
-            shipLevel_roman = String.Format("{0,-4}", shipLevel_roman);
+            shipLevel_roman = string.Format("{0,-4}", shipLevel_roman);
         }
         public void setShipSort()//进行船排序
         {
@@ -58,9 +58,9 @@ namespace wowsCheaterViewer
             string type = Array.IndexOf(typeSort, shipType).ToString();
             string unknowSort = null;
             string shipSortStr = string.Format("{0}{1}{2}",
-                String.Format("{0:D2}", type),
-                String.Format("{0:D2}", shipLevel_int),
-                String.Format("{0:D2}", unknowSort));
+                string.Format("{0:D2}", type),
+                string.Format("{0:D2}", shipLevel_int),
+                string.Format("{0:D2}", unknowSort));
             shipSort = Convert.ToInt32(shipSortStr);
         }
 

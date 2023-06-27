@@ -209,23 +209,26 @@ namespace wowsCheaterViewer
             string outputStr = null;
             if (!string.IsNullOrEmpty(playerStr)) 
             {
-                try
+                Task.Run(() =>
                 {
-                    PlayerGameInfoInRep PlayerGameInfoInRep = new PlayerGameInfoInRep();
-                    try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(playerStr); }
-                    catch (Exception ex) { throw new Exception("输入文本有误：" + ex.Message); }
+                    try
+                    {
+                        PlayerGameInfoInRep PlayerGameInfoInRep = new PlayerGameInfoInRep();
+                        try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(playerStr); }
+                        catch (Exception ex) { throw new Exception("输入文本有误：" + ex.Message); }
 
-                    playerInfo playerInfo = parsePlayer(new playerInfo(), PlayerGameInfoInRep);
-                    PropertyInfo[] properties = playerInfo.GetType().GetProperties();
-                    for (int i = 0; i < properties.Count(); i++)
-                        outputStr = outputStr + string.Format("{0,-20}", properties[i].Name) + ":" + properties[i].GetValue(playerInfo) + Environment.NewLine;
-                }
-                catch(Exception ex) { outputStr = "解析失败，" +ex.Message; }
-                finally
-                {
-                    Logger.logWrite(outputStr);
-                    MessageBox.Show(outputStr);
-                }
+                        playerInfo playerInfo = parsePlayer(new playerInfo(), PlayerGameInfoInRep);
+                        PropertyInfo[] properties = playerInfo.GetType().GetProperties();
+                        for (int i = 0; i < properties.Count(); i++)
+                            outputStr = outputStr + string.Format("{0,-20}", properties[i].Name) + ":" + properties[i].GetValue(playerInfo) + Environment.NewLine;
+                    }
+                    catch (Exception ex) { outputStr = "解析失败，" + ex.Message; }
+                    finally
+                    {
+                        Logger.logWrite(outputStr);
+                        MessageBox.Show(outputStr);
+                    }
+                });
             }
         }
         private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置
@@ -314,7 +317,7 @@ namespace wowsCheaterViewer
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
                 string exceptionMessage = null;
-                System.Threading.Tasks.Task.Run(() =>{
+                Task.Run(() =>{
                     try
                     {
                         //每次读取时禁用刷新按钮

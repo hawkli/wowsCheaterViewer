@@ -33,7 +33,7 @@ namespace wowsCheaterViewer
                 code = Convert.ToInt32(response.StatusCode);
                 checkApiResult(code, apiResult_str);
             }
-            catch (Exception ex) { Logger.logWrite(String.Format("get调用失败，url:{0};code:{1};result:{2};reason:{3}", url, code, apiResult_str, ex.Message)); }
+            catch (Exception ex) { Logger.logWrite(string.Format("get调用失败，url:{0};code:{1};result:{2};reason:{3}", url, code, apiResult_str, ex.Message)); }
 
             return apiResult_str;
         }
@@ -70,7 +70,7 @@ namespace wowsCheaterViewer
                 code = Convert.ToInt32(response.StatusCode);
                 checkApiResult(code, apiResult_str);
             }
-            catch (Exception ex) { Logger.logWrite(String.Format("get调用失败，url:{0};code:{1};result:{2};reason:{3}", url, code, apiResult_str, ex.Message)); }
+            catch (Exception ex) { Logger.logWrite(string.Format("get调用失败，url:{0};code:{1};result:{2};reason:{3}", url, code, apiResult_str, ex.Message)); }
 
             return apiResult_str;
         }
