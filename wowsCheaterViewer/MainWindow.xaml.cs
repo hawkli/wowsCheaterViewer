@@ -27,7 +27,6 @@ namespace wowsCheaterViewer
         Logger Logger = Logger.Instance;
         private FileSystemWatcher watcher = new FileSystemWatcher();
         private apiClient apiClient = new apiClient();
-        private string visionTag = "2023.06.08";
 
         public MainWindow()
         {
@@ -46,15 +45,21 @@ namespace wowsCheaterViewer
             try
             {
                 string releaseCheckUrl = "https://gitee.com/api/v5/repos/bbaoqaq/wowsCheaterViewer/releases/latest";
+                string alternateDownloadUrl = "https://amt.one/bz";
                 apiClient.GetClientAsync(releaseCheckUrl).ContinueWith(t =>
                 {
                     if (Directory.Exists(Config.updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
                         Directory.Delete(Config.updateFolderPath, true);
-                    string releaseCheckResurnStr = t.Result;
-                    JObject releaseCheckResurnJson = JObject.Parse(releaseCheckResurnStr);
+                    JObject releaseCheckResurnJson = JObject.Parse(t.Result);
+                    string newestVisionTag = releaseCheckResurnJson["tag_name"].ToString();
 
-                    if (releaseCheckResurnJson["tag_name"].ToString() == visionTag)
+                    MessageBox.Show((newestVisionTag == Config.visionTag).ToString());
+                    MessageBox.Show(Config.ignoreVisionTag);
+                    MessageBox.Show((newestVisionTag == Config.ignoreVisionTag).ToString());
+
+                    if (newestVisionTag == Config.visionTag || newestVisionTag == Config.ignoreVisionTag)
                     {
+                        //如果tag和当前版本或忽略版本相同，则视为无需更新
                         Logger.logWrite("无需更新");
                     }
                     else
@@ -62,73 +67,107 @@ namespace wowsCheaterViewer
                         Logger.logWrite("需要更新");
                         string updatalog = releaseCheckResurnJson["body"].ToString();
 
-                        bool updataFlag = false;
-                        updataFlag = MessageBox.Show("检查到新版本，是否进行更新？" + Environment.NewLine + "更新内容：" + Environment.NewLine + updatalog, "更新提示", MessageBoxButton.OKCancel) == MessageBoxResult.OK;
-                        if (updataFlag)
+                        MessageBoxResult updataFlag = MessageBox.Show(
+                            "检查到新版本，是否进行更新？（点击取消将忽略此次更新）" + Environment.NewLine + "更新内容：" + Environment.NewLine + updatalog,
+                            "更新提示",
+                            MessageBoxButton.YesNoCancel);
+                        switch(updataFlag)
                         {
-                            logShow("确认更新");
-                            //确认能够转换GBK编码
-                            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-                            string updateZipFilePath = Path.Combine(Config.updateFolderPath, releaseCheckResurnJson["assets"][0]["name"].ToString());
-                            string downloadUrl = releaseCheckResurnJson["assets"][0]["browser_download_url"].ToString();
-                            Directory.CreateDirectory(Config.updateFolderPath);
-                            //下载
-                            bool downloadFlag = false;
-                            using (var web = new WebClient())
-                            {
-                                web.DownloadProgressChanged += (s, e) =>
+                            case MessageBoxResult.No:
+                                logShow("取消更新");
+                                break;
+
+                            case MessageBoxResult.Cancel:
+                                logShow("忽略本次更新");
+                                Config.ignoreVisionTag = newestVisionTag;
+                                Config.update();
+                                break;
+
+                            case MessageBoxResult.Yes:
+                                logShow("确认更新");
+                                //确认能够转换GBK编码
+                                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+                                string updateZipFileName = releaseCheckResurnJson["assets"][0]["name"].ToString();
+                                string updateZipFilePath = Path.Combine(Config.updateFolderPath, updateZipFileName);
+                                string downloadUrl = releaseCheckResurnJson["assets"][0]["browser_download_url"].ToString();
+                                Directory.CreateDirectory(Config.updateFolderPath);
+                                try
                                 {
-                                    string.Format("正在下载文件：{0}%  ({1}/{2})",
-                                        string.Format("{0:D2}", e.ProgressPercentage),
-                                        e.BytesReceived,
-                                        e.TotalBytesToReceive);
-                                    logShow("正在下载：" + e.ProgressPercentage.ToString() + "%");
-                                };
-                                web.DownloadFileCompleted += (s, e) => { downloadFlag = true; };
-                                web.DownloadFileAsync(new Uri(downloadUrl), updateZipFilePath);
-                            }
-                            while (!downloadFlag) ;
-                            Logger.logWrite("下载完成");
-                            //解压
-                            ZipFile.ExtractToDirectory(updateZipFilePath, Config.updateFolderPath, Encoding.GetEncoding("GBK"));
-                            File.Delete(updateZipFilePath);
-                            logShow("解压完成");
-                            //生成更新批处理脚本
-                            string updateBatPath = Path.Combine(Config.updateFolderPath, "update.bat");
-                            string copyFromFolderPath = Directory.GetDirectories(Config.updateFolderPath).First();//取解压后的根文件夹
-                            string copyToFolderPath = Environment.CurrentDirectory;//取当前文件夹
-                            string processName = Assembly.GetExecutingAssembly().GetName().Name;//取项目名称，也是进程名称
-                            string batStr = @"chcp 65001" + Environment.NewLine +//用中文编码
-                                "taskkill /f /im " + processName + ".exe " + Environment.NewLine +//结束项目进程
-                                "xcopy " + copyFromFolderPath.Replace(" ", @""" """) + " " + copyToFolderPath.Replace(" ", @""" """) + " /e /y " + Environment.NewLine +//覆盖所有需要更新的文件
-                                "start " + Path.Combine(copyToFolderPath, processName + ".exe").Replace(" ", @""" """);//重启进程
-                            File.Delete(updateBatPath);
-                            StreamWriter sw = new StreamWriter(updateBatPath);
-                            sw.Write(batStr, Encoding.GetEncoding("GBK"));
-                            sw.Close();
-                            logShow("即将更新");
-                            //启动批处理脚本
-                            Process Process = new Process();
-                            Process.StartInfo.WorkingDirectory = copyToFolderPath;
-                            Process.StartInfo.FileName = updateBatPath;
-                            Process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                            Process.Start();
-                            Process.WaitForExit();
-                            //如果没有正常启动则报错
-                            throw new Exception("批处理脚本启动失败");
-                        }
-                        else
-                        {
-                            logShow("用户取消更新");
+                                    Logger.logWrite("从gitee下载");
+                                    downloadFile(downloadUrl, updateZipFilePath);
+                                }
+                                catch
+                                {
+                                    Logger.logWrite("从备用地址下载");
+                                    downloadUrl = alternateDownloadUrl + "/" + updateZipFileName;
+                                    downloadFile(downloadUrl, updateZipFilePath);
+                                }
+                                //解压
+                                ZipFile.ExtractToDirectory(updateZipFilePath, Config.updateFolderPath, Encoding.GetEncoding("GBK"));
+                                File.Delete(updateZipFilePath);
+                                logShow("解压完成");
+                                //生成更新批处理脚本
+                                string updateBatPath = Path.Combine(Config.updateFolderPath, "update.bat");
+                                string copyFromFolderPath = Directory.GetDirectories(Config.updateFolderPath).First();//取解压后的根文件夹
+                                string copyToFolderPath = Environment.CurrentDirectory;//取当前文件夹
+                                string processName = Assembly.GetExecutingAssembly().GetName().Name;//取项目名称，也是进程名称
+                                string batStr = @"chcp 65001" + Environment.NewLine +//用中文编码
+                                    "taskkill /f /im " + processName + ".exe " + Environment.NewLine +//结束项目进程
+                                    "xcopy " + copyFromFolderPath.Replace(" ", @""" """) + " " + copyToFolderPath.Replace(" ", @""" """) + " /e /y " + Environment.NewLine +//覆盖所有需要更新的文件
+                                    "start " + Path.Combine(copyToFolderPath, processName + ".exe").Replace(" ", @""" """);//重启进程
+                                File.Delete(updateBatPath);
+                                StreamWriter sw = new StreamWriter(updateBatPath);
+                                sw.Write(batStr, Encoding.GetEncoding("GBK"));
+                                sw.Close();
+                                logShow("即将更新");
+                                //启动批处理脚本
+                                Process Process = new Process();
+                                Process.StartInfo.WorkingDirectory = copyToFolderPath;
+                                Process.StartInfo.FileName = updateBatPath;
+                                Process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                                Process.Start();
+                                Process.WaitForExit();
+                                //如果没有正常启动则报错
+                                throw new Exception("批处理脚本启动失败");
                         }
                     }
                 });
-                //string releaseCheckResurnStr = apiClient.GetClientAsync(releaseCheckUrl).Result;
             }
             catch (Exception ex)
             {
                 Logger.logWrite("更新失败，" + ex.Message);
                 MessageBox.Show("更新失败，" + ex.Message);
+            }
+        }
+        private void downloadFile(string url, string path)//下载
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+                bool downloadFlag = false;
+                using (var web = new WebClient())
+                {
+                    web.DownloadProgressChanged += (s, e) =>
+                    {
+                        string.Format("正在下载文件：{0}%  ({1}/{2})",
+                            string.Format("{0:D2}", e.ProgressPercentage),
+                            e.BytesReceived,
+                            e.TotalBytesToReceive);
+                        logShow("正在下载：" + e.ProgressPercentage.ToString() + "%");
+                    };
+                    web.DownloadFileCompleted += (s, e) => { downloadFlag = true; };
+                    web.DownloadFileAsync(new Uri(url), path);
+                }
+                while (!downloadFlag) ;
+                if (new FileInfo(path).Length == 0)
+                    throw new Exception("无法下载文件");
+                Logger.logWrite("下载完成");
+            }
+            catch(Exception ex)
+            {
+                Logger.logWrite("下载文件失败，url：" + url + "，失败原因：" + ex.Message);
+                throw;
             }
         }
         private void logShow(string message)//显示日志

@@ -15,6 +15,7 @@ namespace wowsCheaterViewer
         public static Config Instance => _instance.Value;
 
         //config，会写入文件的属性
+        public string ignoreVisionTag { get; set; }
         public string wowsRootPath { get; set; }
         public Dictionary<string, List<MarkInfo>> mark { get; set; } = new Dictionary<string, List<MarkInfo>>();
         public Dictionary<string, ShipInfo> shipInfo { get; set; } = new Dictionary<string, ShipInfo>();
@@ -22,6 +23,7 @@ namespace wowsCheaterViewer
         //config，不写入文件的属性
         Logger Logger = Logger.Instance;
         public static bool watchFlag = false;
+        public static string visionTag = "2023.06.09";
         public static string updateFolderPath = ".update";
         public static string tempFolderPath = ".temp";
         private static string configPath = @"config.json";
@@ -37,6 +39,12 @@ namespace wowsCheaterViewer
 
                 if (configJson.ContainsKey("wowsRootPath"))
                     wowsRootPath = configJson["wowsRootPath"].ToString();
+
+                if (configJson.ContainsKey("ignoreVisionTag"))
+                    ignoreVisionTag = configJson["ignoreVisionTag"].ToString();
+
+                if (configJson.ContainsKey("shipInfo"))
+                    shipInfo = JsonConvert.DeserializeObject<Dictionary<string, ShipInfo>>(configJson["shipInfo"].ToString());
 
                 if (configJson.ContainsKey("mark"))
                 {
@@ -54,10 +62,6 @@ namespace wowsCheaterViewer
                         update();
                     }
                 }
-
-                if (configJson.ContainsKey("shipInfo"))
-                    shipInfo = JsonConvert.DeserializeObject<Dictionary<string, ShipInfo>>(configJson["shipInfo"].ToString());
-
             }
             else
             {
