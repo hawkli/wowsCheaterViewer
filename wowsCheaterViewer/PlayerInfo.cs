@@ -9,6 +9,7 @@ namespace wowsCheaterViewer
 {
     public class playerInfo
     {
+        private static string errorMessage = "error";
         public string name { get; set; }
         public string playerId { get; set; } = "0";//默认值给0，方便提供给yuyuko
         public string playerPrColor { get; set; } = "Gray";//默认灰色（隐藏战绩或读取失败）
@@ -70,7 +71,7 @@ namespace wowsCheaterViewer
 
 
         public string battleCount_ship { get; set; }
-        public string winRate_ship { get; set; } = "loadFailed";//默认读取失败
+        public string winRate_ship { get; set; } = errorMessage;//默认读取失败
         public string battleCount_pvp { get; set; }
         public string winRate_pvp { get; set; }
         public string battleCount_rank { get; set; }
@@ -81,7 +82,7 @@ namespace wowsCheaterViewer
         public string lastMarkMessage { get; set; }
 
 
-
+        
         private static readonly object writerLock = new object();
         apiClient apiClient = new apiClient();
         Logger Logger = Logger.Instance;
@@ -142,11 +143,11 @@ namespace wowsCheaterViewer
             string infoFilePath_battleType = null;
             if (!isHidden)
             {
+                string PlayersShipsInfo_battleType = null;
                 try
                 {
-                    string PlayersShipsInfo_battleType = apiClient.GetPalyersShipsInfo_official(playerId, battleType);
+                    PlayersShipsInfo_battleType = apiClient.GetPalyersShipsInfo_official(playerId, battleType);
                     infoFilePath_battleType = writeFile(playerId + "_" + battleType + ".json", PlayersShipsInfo_battleType);
-                    throw new Exception();
                     string ParsedPlayerInfoStr_battleType = apiClient.GetParsedPlayerInfo_yuyuko(playerId, shipId, battleType, infoFilePath_battleType, clanEmptyFilePath);
                     JObject ParsedPlayerInfoJo_battleType = JObject.Parse(ParsedPlayerInfoStr_battleType);
                     if (battleType == "pvp")
@@ -174,9 +175,10 @@ namespace wowsCheaterViewer
 
         public void GetClanInfo()//获取军团信息
         {
+            string PlayersClanInfoStr = null;
             try
             {
-                string PlayersClanInfoStr = apiClient.GetPalyersClansInfo_official(playerId);
+                PlayersClanInfoStr = apiClient.GetPalyersClansInfo_official(playerId);
                 JObject PlayersClanInfoJo = JObject.Parse(PlayersClanInfoStr);
                 if(!string.IsNullOrEmpty(PlayersClanInfoJo["data"]["clan_id"].ToString()))
                 {
@@ -190,6 +192,7 @@ namespace wowsCheaterViewer
 
         public void GetShipInfo()//获取船信息
         {
+            string shipInfoStr = null;
             try
             {
                 ShipInfo ShipInfo = new ShipInfo();
@@ -199,7 +202,7 @@ namespace wowsCheaterViewer
                 }
                 else
                 {
-                    string shipInfoStr = apiClient.GetShipInfo(shipId);
+                    shipInfoStr = apiClient.GetShipInfo(shipId);
                     ShipInfo = JsonConvert.DeserializeObject<ShipInfo>(JObject.Parse(shipInfoStr)["data"].ToString());
                     Config.addShipInfo(shipId, ShipInfo);
                 }
@@ -213,9 +216,10 @@ namespace wowsCheaterViewer
 
         public void GetBanInfo()//获取ban信息
         {
+            string getPlayerBanInfoStr = null;
             try
             {
-                string getPlayerBanInfoStr = apiClient.GetPlayerBanInfo_yuyuko(playerId);
+                getPlayerBanInfoStr = apiClient.GetPlayerBanInfo_yuyuko(playerId);
                 JObject getPlayerBanInfoJo = JObject.Parse(getPlayerBanInfoStr);
                 banMatch_fullStr = getPlayerBanInfoJo["data"]["voList"].ToString();
                 List<Int32> banMatch_matchCountList = new List<Int32>();
@@ -252,20 +256,50 @@ namespace wowsCheaterViewer
                     //解析yuyuko玩家信息
                     if (result_getplayerInfo_yuyuko != null)
                     {
-                        battleCount_pvp = result_getplayerInfo_yuyuko["data"]["pvp"]["battles"].ToString();
-                        winRate_pvp = result_getplayerInfo_yuyuko["data"]["pvp"]["wins"].ToString() + "%";
-                        battleCount_rank = result_getplayerInfo_yuyuko["data"]["rankSolo"]["battles"].ToString();
-                        winRate_rank = result_getplayerInfo_yuyuko["data"]["rankSolo"]["wins"].ToString() + "%";
-                        playerPrColor = result_getplayerInfo_yuyuko["data"]["pr"]["color"].ToString();
+                        try
+                        {
+                            try
+                            {
+                                //新版结构
+                                battleCount_pvp = result_getplayerInfo_yuyuko["data"]["battleTypeInfo"]["PVP"]["shipInfo"]["battleInfo"]["battle"].ToString();
+                                winRate_pvp = result_getplayerInfo_yuyuko["data"]["battleTypeInfo"]["PVP"]["shipInfo"]["avgInfo"]["win"].ToString() + "%";
+                                battleCount_rank = result_getplayerInfo_yuyuko["data"]["battleTypeInfo"]["RANK_SOLO"]["shipInfo"]["battleInfo"]["battle"].ToString();
+                                winRate_rank = result_getplayerInfo_yuyuko["data"]["battleTypeInfo"]["RANK_SOLO"]["shipInfo"]["avgInfo"]["win"].ToString() + "%";
+                                playerPrColor = result_getplayerInfo_yuyuko["data"]["prInfo"]["color"].ToString();
+                            }
+                            catch
+                            {
+                                //旧版结构
+                                battleCount_pvp = result_getplayerInfo_yuyuko["data"]["pvp"]["battles"].ToString();
+                                winRate_pvp = result_getplayerInfo_yuyuko["data"]["pvp"]["wins"].ToString() + "%";
+                                battleCount_rank = result_getplayerInfo_yuyuko["data"]["rankSolo"]["battles"].ToString();
+                                winRate_rank = result_getplayerInfo_yuyuko["data"]["rankSolo"]["wins"].ToString() + "%";
+                                playerPrColor = result_getplayerInfo_yuyuko["data"]["pr"]["color"].ToString();
+                            }
+                        }
+                        catch (Exception ex) { Logger.logWrite("无法解析yuyuko玩家信息，" + ex.Message); }
                     }
-
                     //根据船id获取yuyuko机器人中的船信息和玩家单船信息
                     JObject result_getPlayerShipInfo_yuyuko = JObject.Parse(apiClient.GetPlayerShipInfo_yuyuko(playerId, shipId));
                     //解析玩家单船信息
                     if (result_getPlayerShipInfo_yuyuko != null)
                     {
-                        battleCount_ship = result_getPlayerShipInfo_yuyuko["data"]["shipInfo"]["battles"].ToString();
-                        winRate_ship = result_getPlayerShipInfo_yuyuko["data"]["shipInfo"]["wins"].ToString() + "%";
+                        try
+                        {
+                            try
+                            {
+                                //新版结构
+                                battleCount_ship = result_getPlayerShipInfo_yuyuko["data"]["typeInfo"]["PVP"]["battleInfo"]["battleInfo"]["battle"].ToString();
+                                winRate_ship = result_getPlayerShipInfo_yuyuko["data"]["typeInfo"]["PVP"]["battleInfo"]["avgInfo"]["win"].ToString() + "%";
+                            }
+                            catch
+                            {
+                                //旧版结构
+                                battleCount_ship = result_getPlayerShipInfo_yuyuko["data"]["shipInfo"]["battles"].ToString();
+                                winRate_ship = result_getPlayerShipInfo_yuyuko["data"]["shipInfo"]["wins"].ToString() + "%";
+                            }
+                        }
+                        catch (Exception ex) { Logger.logWrite("无法解析yuyuko玩家单船信息，" + ex.Message); }
                     }
                 }
             }
