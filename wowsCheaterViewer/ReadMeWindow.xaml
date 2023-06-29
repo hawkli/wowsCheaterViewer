@@ -5,42 +5,50 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:wowsCheaterViewer"
         mc:Ignorable="d"
-        Title="使用免责说明" Height="350" Width="550" ResizeMode="NoResize">
+        Title="使用免责说明" Height="auto" Width="550" ResizeMode="NoResize">
     <Grid ShowGridLines="True">
         <Grid.RowDefinitions>
-            <RowDefinition/>
-            <RowDefinition Height="50"/>
+            <RowDefinition />
+            <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
 
         <TextBlock TextWrapping="Wrap" Grid.Row="0" 
                    Text="
-战舰世界国服，wowsCheaterViewer（功能类似海猴查看器/Monitor）  &#13;
-1、本程序目前仅支持国服  &#13;
-2、本程序数据来源于国服官方接口与yuyuko机器人接口  &#13;
-3、功能使用说明：  &#13;
-  3.1、重设游戏路径：设定完游戏路径后，程序将自动监控对局并识别对局信息  &#13;
-  3.2、刷新对局信息：重新识别当前正在进行中的对局信息，建议在读取失败的情况下使用  &#13;
-  3.3、读取rep文件：识别rep文件中的对局信息  &#13;
-  3.4、标记所有敌方：将敌方玩家全部标记下来，标记的内容可前往配置文件查看  &#13;
-  3.5、单个玩家调试：调试单个玩家需要从rep文件或对局文件或报错日志中获取。格式类似于：  &#13;
+战舰世界国服，wowsCheaterViewer封禁查看器插件（功能类似海猴查看器/Monitor）  &#13;
+1、本插件目前仅支持国服  &#13;
+2、首次安装后，需要设定游戏根路径，设定完成后插件会自动监控到对局开始  &#13;
+3、本插件数据来源于国服官方接口与yuyuko机器人接口  &#13;
+4、功能使用说明：  &#13;
+  4.1、重设游戏路径：设定完游戏路径后，插件将自动监控对局并识别对局信息  &#13;
+  4.2、刷新对局信息：重新识别当前正在进行中的对局信息，建议在读取失败的情况下使用  &#13;
+  4.3、读取rep文件：识别rep文件中的对局信息。可以跨版本，但是无法读取到改名的玩家  &#13;
+  4.4、标记（标记所有敌方）：根据uid标记玩家（可以直接在展示数据的标记列编辑，或点击“标记所有敌方”按钮进行批量标记），标记的内容将保存到本地配置文件  &#13;
+  4.5、单个玩家调试：调试单个玩家需要从rep文件或对局文件或报错日志中获取。格式形如：  &#13;
        {'shipId':'', 'relation':'', 'id':'', 'name':''}  &#13;
-4、关于[封禁匹配]列的说明：  &#13;
-  4.1、封禁匹配数据源来源于yuyuko机器人接口  &#13;
-  4.2、匹配的规则是检测yuyuko机器人收集过的玩家id是否与封禁名单匹配上  &#13;
-  4.3、yuyuko机器人并未收集国服所有玩家信息，所以匹配数量即使为1也不能说明该玩家被封禁过  " />
+5、关于[封禁匹配]列的说明：  &#13;
+  5.1、将鼠标移动到该列将显示玩家的历史封禁记录（包括曾用名、封禁时间、官方公布的id等）  &#13;
+  5.2、封禁匹配的数据来源于yuyuko机器人接口，等效于wws ban  &#13;
+  5.3、匹配的原理是检测yuyuko机器人收集过的玩家id是否与封禁名单匹配上  &#13;
+  5.4、yuyuko机器人并未收集国服所有玩家信息，所以匹配数量即使为1也不能说明该玩家被封禁过  &#13;
+6、插件会收集玩家对局数据提交给yuyuko机器人（包括玩家id、名称、军团等信息，不包括个人隐私数据）  &#13;
+" />
 
         <TextBlock Grid.Row="1">
             <Run />
-            <Hyperlink NavigateUri="https://github.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">
-                *在github中查看
-            </Hyperlink>
-            <Run Text="&#13;"/>
-            <Hyperlink NavigateUri="https://gitee.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">
-                *在gitee中查看
+            <Hyperlink NavigateUri="https://wows.mgaia.top/#/banLike" RequestNavigate="Hyperlink_Click">
+                *yuyuko封禁匹配
             </Hyperlink>
             <Run Text="&#13;"/>
             <Hyperlink NavigateUri="https://afdian.net/a/JustOneSummer" RequestNavigate="Hyperlink_Click">
-                *前往赞助yuyuko作者
+                *yuyuko机器人赞助地址
+            </Hyperlink>
+            <Run Text="&#13;"/>
+            <Hyperlink NavigateUri="https://github.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">
+                *项目github地址
+            </Hyperlink>
+            <Run Text="&#13;"/>
+            <Hyperlink NavigateUri="https://gitee.com/bbaoqaq/wowsCheaterViewer" RequestNavigate="Hyperlink_Click">
+                *项目gitee地址
             </Hyperlink>
         </TextBlock>
     </Grid>
