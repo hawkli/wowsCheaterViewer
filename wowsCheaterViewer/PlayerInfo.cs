@@ -84,8 +84,6 @@ namespace wowsCheaterViewer
 
         
         private static readonly object writerLock = new object();
-        apiClient apiClient = new apiClient();
-        Logger Logger = Logger.Instance;
         Config Config = Config.Instance;
         private string clanEmptyFilePath;
         private List<string> tempFiles = new List<string>();
@@ -320,7 +318,6 @@ namespace wowsCheaterViewer
             time = (long)(dt.ToLocalTime() - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1))).TotalMilliseconds;
         }
 
-        apiClient apiClient = new apiClient();
         public void AddYuyukoPlayerInfo(playerInfo playerInfo)//添加单个玩家信息
         {
             yuyukoPlayerInfo yuyukoPlayerInfo = new yuyukoPlayerInfo();

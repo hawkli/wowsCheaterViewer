@@ -21,7 +21,6 @@ namespace wowsCheaterViewer
         public Dictionary<string, ShipInfo> shipInfo { get; set; } = new Dictionary<string, ShipInfo>();
 
         //config，不写入文件的属性
-        Logger Logger = Logger.Instance;
         public static bool watchFlag = false;
         public static string visionTag = "2023.06.09";
         public static string updateFolderPath = ".update";

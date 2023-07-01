@@ -24,9 +24,7 @@ namespace wowsCheaterViewer
     public partial class MainWindow : Window
     {
         Config Config = Config.Instance;
-        Logger Logger = Logger.Instance;
         private FileSystemWatcher watcher = new FileSystemWatcher();
-        private apiClient apiClient = new apiClient();
 
         public MainWindow()
         {
