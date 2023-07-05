@@ -82,10 +82,10 @@ namespace wowsCheaterViewer
         public string? MarkMessage { get; set; }
         public string? LastMarkMessage { get; set; }
 
+        readonly Config Config = Config.Instance;
         private static readonly object writerLock = new();
-        Config Config = Config.Instance;
         private string? clanEmptyFilePath;
-        private List<string> tempFiles = new();
+        private readonly List<string> tempFiles = new();
         public void SetBasePlayerInfo(PlayerGameInfoInRep PlayerGameInfoInRep)//根据rep里的内容获取基础信息
         {
             Name = PlayerGameInfoInRep.Name;

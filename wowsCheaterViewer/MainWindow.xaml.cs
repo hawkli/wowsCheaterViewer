@@ -157,7 +157,7 @@ namespace wowsCheaterViewer
                 {
                     await filestream.WriteAsync(buffer.AsMemory(0, len));
                     readSize += len;
-                    LogShow(((double)readSize / fileSize * 100).ToString("P"));
+                    LogShow(((double)readSize / fileSize).ToString("P"));
                 }
                 //销毁fs缓冲区
                 filestream.Flush();
