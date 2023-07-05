@@ -9,7 +9,7 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
+            <RowDefinition Height="70"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
         
@@ -37,17 +37,17 @@
 
                 <!--右侧第一行放按钮-->
                 <WrapPanel  Grid.Row="0" >
-                    <Button Click="readmeEvent" Width="80" Height="25">使用免责说明</Button>
-                    <Button Click="resetRootPathEvent" Width="80" Height="25">重设游戏路径</Button>
-                    <Button x:Name="reflashBtn" Click="reflashEvent" Width="80" Height="25">刷新对局信息</Button>
-                    <Button x:Name="readRepBtn" Click="readRepEvent" Width="80" Height="25">读取rep文件</Button>
-                    <Button x:Name="markEnemyBtn" Click="markEnemyEvent" Width="80" Height="25" IsEnabled="False">标记所有敌方</Button>
-                    <Button Click="debugPlayerEvent" Width="80" Height="25">单个玩家调试</Button>
+                    <Button Click="ReadmeEvent" Width="80" Height="25">使用免责说明</Button>
+                    <Button Click="ResetRootPathEvent" Width="80" Height="25">重设游戏路径</Button>
+                    <Button x:Name="reflashBtn" Click="ReflashEvent" Width="80" Height="25">刷新对局信息</Button>
+                    <Button x:Name="readRepBtn" Click="ReadRepEvent" Width="80" Height="25">读取rep文件</Button>
+                    <Button x:Name="markEnemyBtn" Click="MarkEnemyEvent" Width="80" Height="25" IsEnabled="False">标记所有敌方</Button>
+                    <Button Click="DebugPlayerEvent" Width="80" Height="25">单个玩家调试</Button>
                 </WrapPanel>
                 <!--右侧第二行放路径-->
-                <TextBlock Grid.Row="1">
-                    <Run Text="当前游戏根路径:"/>
-                    <Run x:Name="rootPath" />
+                <TextBlock Grid.Row="1" TextWrapping="Wrap">
+                    <Run x:Name="WatchMessage"/>
+                    <Run x:Name="ReplayPath" />
                 </TextBlock>
             </Grid>
             
@@ -135,7 +135,7 @@
                     <DataGridTemplateColumn Header="标记" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="markMessageChangedEvent">
+                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="MarkMessageChangedEvent">
                                     <TextBox.ToolTip>
                                         <TextBlock Text="{Binding lastMarkMessage}"/>
                                     </TextBox.ToolTip>
@@ -220,7 +220,7 @@
                     <DataGridTemplateColumn Header="标记" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="markMessageChangedEvent">
+                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="MarkMessageChangedEvent">
                                     <TextBox.ToolTip>
                                         <TextBlock Text="{Binding lastMarkMessage}"/>
                                     </TextBox.ToolTip>

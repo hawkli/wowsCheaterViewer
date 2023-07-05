@@ -8,13 +8,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.IO;
 using System.Threading;
-using Microsoft.WindowsAPICodePack.Dialogs;
 using System.Diagnostics;
 using System.Windows.Threading;
 using System.Reflection;
-using System.Net;
 using System.IO.Compression;
 using Microsoft.VisualBasic;
+using System.Windows.Forms;
+using MessageBox = System.Windows.MessageBox;
+using System.Net.Http;
 
 namespace wowsCheaterViewer
 {
@@ -23,8 +24,8 @@ namespace wowsCheaterViewer
     /// </summary>
     public partial class MainWindow : Window
     {
-        Config Config = Config.Instance;
-        private FileSystemWatcher watcher = new FileSystemWatcher();
+        private Config Config = Config.Instance;
+        private FileSystemWatcher watcher = new();
 
         public MainWindow()
         {
@@ -33,32 +34,33 @@ namespace wowsCheaterViewer
 
         private void MainWindowLoaded(object sender, RoutedEventArgs e)//窗口加载完成后，初始化并监控rep文件夹
         {
-            Config.init();
-            rootPath.Text = Config.wowsRootPath;
-            checkUpdate();
-            watchRepFolder();
+            Config.Init();
+            WatchMessage.Text = Config.watchMessage;
+            ReplayPath.Text = Config.ReplayPath;
+            CheckUpdate();
+            WatchRepFolder();
         }
-        private void checkUpdate()//检测客户端升级
+        private void CheckUpdate()//检测客户端升级
         {
             try
             {
                 string releaseCheckUrl = "https://gitee.com/api/v5/repos/bbaoqaq/wowsCheaterViewer/releases/latest";
                 string alternateDownloadUrl = "https://amt.one/bz";
-                apiClient.GetClientAsync(releaseCheckUrl).ContinueWith(t =>
+                ApiClient.GetClientAsync(releaseCheckUrl).ContinueWith(async t =>
                 {
                     if (Directory.Exists(Config.updateFolderPath))//每次检测时删除更新文件夹，保证没有脏文件
                         Directory.Delete(Config.updateFolderPath, true);
-                    JObject releaseCheckResurnJson = JObject.Parse(t.Result);
-                    string newestVisionTag = releaseCheckResurnJson["tag_name"].ToString();
-                    if (newestVisionTag == Config.visionTag || newestVisionTag == Config.ignoreVisionTag)
+                    JObject releaseCheckResurnJson = JObject.Parse(t.Result!);
+                    string lastVersionTag = releaseCheckResurnJson["tag_name"]?.ToString()!;
+                    if (lastVersionTag == Config.versionTag || lastVersionTag == Config.IgnoreVersionTag)
                     {
                         //如果tag和当前版本或忽略版本相同，则视为无需更新
-                        Logger.logWrite("无需更新");
+                        Logger.LogWrite("无需更新");
                     }
                     else
                     {
-                        Logger.logWrite("需要更新");
-                        string updatalog = releaseCheckResurnJson["body"].ToString();
+                        Logger.LogWrite("需要更新");
+                        string updatalog = releaseCheckResurnJson["body"]?.ToString()!;
 
                         MessageBoxResult updataFlag = MessageBox.Show(
                             "检查到新版本，是否进行更新？（点击取消将忽略此次更新）" + Environment.NewLine + "更新内容：" + Environment.NewLine + updatalog,
@@ -67,54 +69,54 @@ namespace wowsCheaterViewer
                         switch(updataFlag)
                         {
                             case MessageBoxResult.No:
-                                logShow("取消更新");
+                                LogShow("取消更新");
                                 break;
 
                             case MessageBoxResult.Cancel:
-                                logShow("忽略本次更新");
-                                Config.ignoreVisionTag = newestVisionTag;
-                                Config.update();
+                                LogShow("忽略本次更新");
+                                Config.IgnoreVersionTag = lastVersionTag;
+                                Config.Update();
                                 break;
 
                             case MessageBoxResult.Yes:
-                                logShow("确认更新");
+                                LogShow("确认更新");
                                 //确认能够转换GBK编码
                                 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-                                string updateZipFileName = releaseCheckResurnJson["assets"][0]["name"].ToString();
+                                string updateZipFileName = releaseCheckResurnJson["assets"]?[0]?["name"]?.ToString()!;
                                 string updateZipFilePath = Path.Combine(Config.updateFolderPath, updateZipFileName);
-                                string downloadUrl = releaseCheckResurnJson["assets"][0]["browser_download_url"].ToString();
+                                string downloadUrl = releaseCheckResurnJson["assets"]?[0]?["browser_download_url"]?.ToString()!;
                                 Directory.CreateDirectory(Config.updateFolderPath);
                                 try
                                 {
-                                    Logger.logWrite("从gitee下载");
-                                    downloadFile(downloadUrl, updateZipFilePath);
+                                    Logger.LogWrite("从gitee下载");
+                                    await DownloadFile(downloadUrl, updateZipFilePath);
                                 }
                                 catch
                                 {
-                                    Logger.logWrite("从备用地址下载");
+                                    Logger.LogWrite("从备用地址下载");
                                     downloadUrl = alternateDownloadUrl + "/" + updateZipFileName;
-                                    downloadFile(downloadUrl, updateZipFilePath);
+                                    await DownloadFile(downloadUrl, updateZipFilePath);
                                 }
                                 //解压
                                 ZipFile.ExtractToDirectory(updateZipFilePath, Config.updateFolderPath, Encoding.GetEncoding("GBK"));
                                 File.Delete(updateZipFilePath);
-                                logShow("解压完成");
+                                LogShow("解压完成");
                                 //生成更新批处理脚本
                                 string updateBatPath = Path.Combine(Config.updateFolderPath, "update.bat");
                                 string copyFromFolderPath = Directory.GetDirectories(Config.updateFolderPath).First();//取解压后的根文件夹
                                 string copyToFolderPath = Environment.CurrentDirectory;//取当前文件夹
-                                string processName = Assembly.GetExecutingAssembly().GetName().Name;//取项目名称，也是进程名称
+                                string processName = Assembly.GetExecutingAssembly().GetName().Name!;//取项目名称，也是进程名称
                                 string batStr = @"chcp 65001" + Environment.NewLine +//用中文编码
                                     "taskkill /f /im " + processName + ".exe " + Environment.NewLine +//结束项目进程
                                     "xcopy " + copyFromFolderPath.Replace(" ", @""" """) + " " + copyToFolderPath.Replace(" ", @""" """) + " /e /y " + Environment.NewLine +//覆盖所有需要更新的文件
                                     "start " + Path.Combine(copyToFolderPath, processName + ".exe").Replace(" ", @""" """);//重启进程
                                 File.Delete(updateBatPath);
-                                StreamWriter sw = new StreamWriter(updateBatPath);
+                                StreamWriter sw = new(updateBatPath);
                                 sw.Write(batStr, Encoding.GetEncoding("GBK"));
                                 sw.Close();
-                                logShow("即将更新");
+                                LogShow("即将更新");
                                 //启动批处理脚本
-                                Process Process = new Process();
+                                Process Process = new();
                                 Process.StartInfo.WorkingDirectory = copyToFolderPath;
                                 Process.StartInfo.FileName = updateBatPath;
                                 Process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -128,227 +130,222 @@ namespace wowsCheaterViewer
             }
             catch (Exception ex)
             {
-                Logger.logWrite("更新失败，" + ex.Message);
+                Logger.LogWrite("更新失败，" + ex.Message);
                 MessageBox.Show("更新失败，" + ex.Message);
             }
         }
-        private void downloadFile(string url, string path)//下载
+        private async Task DownloadFile(string url, string path)//下载
         {
             try
             {
                 if (File.Exists(path))
                     File.Delete(path);
-                bool downloadFlag = false;
-                using (var web = new WebClient())
+                using FileStream filestream = File.Create(path);
+                HttpClient client = new();
+                //创建一个缓冲区，大小为20mb
+                byte[] buffer = new byte[1024 * 1024 * 20];
+                HttpRequestMessage request = new(HttpMethod.Get, new Uri(url));
+                HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+                //获取响应内容长度
+                long fileSize = response.Content.Headers.ContentLength ?? -1;
+                long readSize = 0;
+                using Stream stream = await response.Content.ReadAsStreamAsync();
+                int len;
+                //循环异步读取响应流的内容，直到读取完毕
+                while ((len = await stream.ReadAsync(buffer)) > 0)
                 {
-                    web.DownloadProgressChanged += (s, e) =>
-                    {
-                        string.Format("正在下载文件：{0}%  ({1}/{2})",
-                            string.Format("{0:D2}", e.ProgressPercentage),
-                            e.BytesReceived,
-                            e.TotalBytesToReceive);
-                        logShow("正在下载：" + e.ProgressPercentage.ToString() + "%");
-                    };
-                    web.DownloadFileCompleted += (s, e) => { downloadFlag = true; };
-                    web.DownloadFileAsync(new Uri(url), path);
+                    await filestream.WriteAsync(buffer.AsMemory(0, len));
+                    readSize += len;
+                    LogShow(((double)readSize / fileSize * 100).ToString("P"));
                 }
-                while (!downloadFlag) ;
-                if (new FileInfo(path).Length == 0)
-                    throw new Exception("无法下载文件");
-                Logger.logWrite("下载完成");
+                //销毁fs缓冲区
+                filestream.Flush();
+                Logger.LogWrite("下载完成");
             }
             catch(Exception ex)
             {
-                Logger.logWrite("下载文件失败，url：" + url + "，失败原因：" + ex.Message);
+                Logger.LogWrite("下载文件失败，url：" + url + "，失败原因：" + ex.Message);
                 throw;
             }
         }
-        private void logShow(string message)//显示日志
+        private void LogShow(string message)//显示日志
         {
             Dispatcher.Invoke(() => logText.Text = message);
-            Logger.logWrite(message);
+            Logger.LogWrite(message);
         }
         
         
-        private void readmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
+        private void ReadmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
         {
-            ReadMeWindow window = new ReadMeWindow();
+            ReadMeWindow window = new();
             window.Show();
         }
-        private void resetRootPathEvent(object sender, RoutedEventArgs e)//重设路径事件
+        private void ResetRootPathEvent(object sender, RoutedEventArgs e)//重设路径事件
         {
-            Config.resetRootPath();
-            if (Config.watchFlag)
-                logShow("路径设置成功");
-            else
-                logShow("路径有误，请选择游戏根路径");
-            rootPath.Text = Config.wowsRootPath;
+            Config.ResetRootPath();
+            WatchMessage.Text = Config.watchMessage;
+            ReplayPath.Text = Config.ReplayPath;
+            WatchRepFolder();
         }
-        private void reflashEvent(object sender, RoutedEventArgs e)//手动刷新事件
+        private void ReflashEvent(object sender, RoutedEventArgs e)//手动刷新事件
         {
             if (Config.watchFlag)
             {
-                logShow("刷新当前对局数据");
-                parseGame(readTempJson());
+                LogShow("刷新当前对局数据");
+                ParseGame(ReadTempJson());
             }
             else
             {
-                logShow("未设定游戏路径，无法读取。请设定后重试");
+                LogShow("未设定游戏路径，无法读取。请设定后重试");
             }
         }
-        private void readRepEvent(object sender, RoutedEventArgs e)//读取指定rep文件
+        private void ReadRepEvent(object sender, RoutedEventArgs e)//读取指定rep文件
         {
-            string defaultPath = @"C:\";
-            if (Config.watchFlag)
-                    defaultPath = Path.Combine(Config.wowsRootPath, "replays"); 
-
-            CommonOpenFileDialog dlg = new CommonOpenFileDialog();
-            dlg.EnsureReadOnly = true;
-            dlg.InitialDirectory = defaultPath;
-            dlg.Filters.Add(new CommonFileDialogFilter("战舰世界回放文件", "*.wowsreplay"));
-            if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
-                parseGame(readRepJson(dlg.FileName));
+            OpenFileDialog dlg = new()
+            {
+                Filter = "wows回放文件|*.wowsreplay",
+                InitialDirectory = Config.watchFlag ? Path.Combine(Config.ReplayPath!, "replays") : @"C:\"
+            };
+            dlg.ShowDialog();
+            string repPath = dlg.FileName;
+            if (!string.IsNullOrEmpty(repPath))
+                ParseGame(ReadRepJson(repPath));
         }
-        private void markEnemyEvent(object sender, RoutedEventArgs e)//标记所有敌方
+        private void MarkEnemyEvent(object sender, RoutedEventArgs e)//标记所有敌方
         {
-            List<playerInfo> updateTeam2 = new List<playerInfo>();
+            List<PlayerInfo> updateTeam2 = new();
             string markMessage = Interaction.InputBox("标记内容：", "提示");
             if (!string.IsNullOrEmpty(markMessage))
             {
                 try
                 {
-                    foreach (playerInfo playerInfo in this.team2.Items)
+                    foreach (PlayerInfo playerInfo in this.team2.Items)
                     {
-                        playerInfo.markMessage = markMessage;
-                        Config.addMarkInfo(playerInfo);
+                        playerInfo.MarkMessage = markMessage;
+                        Config.AddMarkInfo(playerInfo);
                         updateTeam2.Add(playerInfo);
                     }
                     Dispatcher.Invoke(() =>
                     {
                         team2.ItemsSource = updateTeam2;
                     });
-                    logShow(markMessage + "标记成功");
+                    LogShow(markMessage + "标记成功");
                 }
                 catch (Exception ex)
                 {
-                    logShow(markMessage + "标记失败，" + ex.Message);
+                    LogShow(markMessage + "标记失败，" + ex.Message);
                 }
             }
         }
-        private void debugPlayerEvent(object sender, RoutedEventArgs e)//单个玩家调试
+        private void DebugPlayerEvent(object sender, RoutedEventArgs e)//单个玩家调试
         {
-            string playerStr = Interaction.InputBox("调试文本："+ Environment.NewLine + "（作者用来调试的，想用这个功能的话请参考说明文档）", "提示");
-            string outputStr = null;
-            if (!string.IsNullOrEmpty(playerStr)) 
+            string debugStr = Interaction.InputBox("调试文本："+ Environment.NewLine + "（作者用来调试的，想用这个功能的话请参考说明文档）", "提示");
+            string? outputStr = null;
+            if (!string.IsNullOrEmpty(debugStr)) 
             {
                 Task.Run(() =>
                 {
                     try
                     {
-                        PlayerGameInfoInRep PlayerGameInfoInRep = new PlayerGameInfoInRep();
-                        try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(playerStr); }
+                        PlayerGameInfoInRep PlayerGameInfoInRep = new();
+                        try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(debugStr)!; }
                         catch (Exception ex) { throw new Exception("输入文本有误：" + ex.Message); }
 
-                        playerInfo playerInfo = parsePlayer(new playerInfo(), PlayerGameInfoInRep);
+                        PlayerInfo playerInfo = ParsePlayer(new PlayerInfo(), PlayerGameInfoInRep);
                         PropertyInfo[] properties = playerInfo.GetType().GetProperties();
-                        for (int i = 0; i < properties.Count(); i++)
+                        for (int i = 0; i < properties.Length; i++)
                             outputStr = outputStr + string.Format("{0,-20}", properties[i].Name) + ":" + properties[i].GetValue(playerInfo) + Environment.NewLine;
                     }
                     catch (Exception ex) { outputStr = "解析失败，" + ex.Message; }
                     finally
                     {
-                        Logger.logWrite(outputStr);
+                        Logger.LogWrite(outputStr);
                         MessageBox.Show(outputStr);
                     }
                 });
             }
         }
-        private void markMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置
+        private void MarkMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置
         {
-            playerInfo currentPlayerInfo = new playerInfo();
             if (this.team1.SelectedIndex >= 0)
-                currentPlayerInfo = (playerInfo)this.team1.Items[this.team1.SelectedIndex];
+                Config.AddMarkInfo((PlayerInfo)this.team1.Items[this.team1.SelectedIndex]);
             else if (this.team2.SelectedIndex >= 0)
-                currentPlayerInfo = (playerInfo)this.team2.Items[this.team2.SelectedIndex];
+                Config.AddMarkInfo((PlayerInfo)this.team2.Items[this.team2.SelectedIndex]);
             else
-                logShow("更新玩家标记失败，未能定位到玩家所在队伍");
-
-            if (currentPlayerInfo != null)
-                Config.addMarkInfo(currentPlayerInfo);
+                LogShow("更新玩家标记失败，未能定位到玩家所在队伍");
         }
 
-        private void watchRepFolder()//监控rep文件夹
+        private void WatchRepFolder()//监控rep文件夹
         {
             if(Config.watchFlag)
             {
                 watcher.EnableRaisingEvents = false;//先停止监控
-                watcher.Path = Path.Combine(Config.wowsRootPath, "replays");
+                watcher.Path = Config.ReplayPath!;
                 watcher.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
                 watcher.Filter = "tempArenaInfo.json";
                 watcher.Created += (s, e) => 
                 {
-                    logShow("检测到对局开始，正在读取");
-                    parseGame(readTempJson());
+                    LogShow("检测到对局开始，正在读取");
+                    ParseGame(ReadTempJson());
                 };
                 watcher.Deleted += (s, e) => 
                 {
-                    logShow("检测到对局结束，正在监控rep文件夹");
+                    LogShow("检测到对局结束，正在监控rep文件夹");
                 };
                 watcher.EnableRaisingEvents = true;
-                logShow("正在监控rep文件夹");
+                LogShow("正在监控rep文件夹");
             }
             else
             {
-                logShow("请检查路径是否设置");
+                LogShow("请检查路径是否设置");
             }
         }
-        private JObject readTempJson()//读取对局中生成的临时文件
+        private JObject? ReadTempJson()//读取对局中生成的临时文件
         {
             Thread.Sleep(1000);
-            JObject infoJson;
             try
             {
-                string infoStr = File.ReadAllText(Path.Combine(Config.wowsRootPath, "replays", "tempArenaInfo.json"));
-                infoJson = JObject.Parse(infoStr);
+                string infoStr = File.ReadAllText(Path.Combine(Config.ReplayPath!, "tempArenaInfo.json"));
+                return JObject.Parse(infoStr);
             }
             catch (Exception ex)
             {
-                infoJson = null;
-                logShow("未能成功读取对局文件，" + ex.Message);
+                LogShow("未能成功读取对局文件，" + ex.Message);
+                return null;
             }
-            return infoJson;
         }
-        private JObject readRepJson(string path)//读取指定的rep文件
+        private JObject? ReadRepJson(string path)//读取指定的rep文件
         {
-            JObject infoJson;
-            string infoStr;
+            JObject? infoJson;
+            string? infoStr;
             try
             {
-                StreamReader sr = new StreamReader(path);
+                StreamReader sr = new(path);
                 infoStr = sr.ReadLine();
                 sr.Close();
 
                 infoStr = @"{""matchGroup""" +
-                    System.Text.RegularExpressions.Regex.Matches(infoStr, @"(?<={""matchGroup"").*(?=""mapBorder"")").First().ToString() +
+                    MatchInfoJsonInRep().Match(infoStr!).ToString() +
                     @"""mapBorder"": null}";
-                infoJson = Newtonsoft.Json.Linq.JObject.Parse(infoStr);
+                infoJson = JObject.Parse(infoStr);
 
-                logShow("正在读取rep文件，" + path);
+                LogShow("正在读取rep文件，" + path);
             }
             catch (Exception ex)
             {
                 infoJson = null;
-                logShow("未能成功读取rep文件，" + ex.Message);
+                LogShow("未能成功读取rep文件，" + ex.Message);
             }
             return infoJson;
         }
-        private void parseGame(JObject infoJson)//解析对局json，把队伍信息绑定到前台表格中
+        private void ParseGame(JObject? infoJson)//解析对局json，把队伍信息绑定到前台表格中
         {
             if (infoJson != null) 
             {
-                Stopwatch sw = new Stopwatch();
+                Stopwatch sw = new();
                 sw.Start();
-                string exceptionMessage = null;
+                string? exceptionMessage = null;
                 Task.Run(() =>{
                     try
                     {
@@ -361,28 +358,28 @@ namespace wowsCheaterViewer
                             watcher.EnableRaisingEvents = false;//先停止监控
                         });
                         
-                        List<playerInfo> playerInfo_team1 = new List<playerInfo>();
-                        List<playerInfo> playerInfo_team2 = new List<playerInfo>();
+                        List<PlayerInfo> playerInfo_team1 = new();
+                        List<PlayerInfo> playerInfo_team2 = new();
                         int readCount = 0;
                         int failedList = 0;
-                        List<PlayerGameInfoInRep> PlayerGameInfoList = JsonConvert.DeserializeObject<List<PlayerGameInfoInRep>>(infoJson["vehicles"].ToString());
+                        List<PlayerGameInfoInRep> PlayerGameInfoList = JsonConvert.DeserializeObject<List<PlayerGameInfoInRep>>(infoJson["vehicles"]?.ToString()!)!;
                         
-                        yuyukoGameInfo yuyukoGameInfo = new yuyukoGameInfo();
-                        yuyukoGameInfo.SetTime(infoJson["dateTime"].ToString());
-                        yuyukoGameInfo.battleType = infoJson["matchGroup"].ToString();
+                        YuyukoGameInfo yuyukoGameInfo = new();
+                        yuyukoGameInfo.SetTime(infoJson["dateTime"]?.ToString()!);
+                        yuyukoGameInfo.BattleType = infoJson["matchGroup"]?.ToString()!;
 
                         //并行执行
-                        ParallelLoopResult parallelResult = Parallel.For(0, PlayerGameInfoList.Count(), i =>
+                        ParallelLoopResult parallelResult = Parallel.For(0, PlayerGameInfoList.Count, i =>
                         {
-                            playerInfo playerInfo = new playerInfo();
+                            PlayerInfo playerInfo = new();
                             try
                             {
-                                playerInfo = parsePlayer(playerInfo, PlayerGameInfoList[i]);
+                                playerInfo = ParsePlayer(playerInfo,PlayerGameInfoList[i]);
                             }
                             catch(Exception ex)
                             {
                                 failedList++;
-                                Logger.logWrite("玩家信息读取失败，" + ex.Message + Environment.NewLine + 
+                                Logger.LogWrite("玩家信息读取失败，" + ex.Message + Environment.NewLine + 
                                     JsonConvert.SerializeObject(PlayerGameInfoList[i]).ToString());
                             }
                             finally
@@ -390,21 +387,22 @@ namespace wowsCheaterViewer
                                 readCount++;
                                 yuyukoGameInfo.AddYuyukoPlayerInfo(playerInfo);
                                 
-                                if (playerInfo.relation == 1 || playerInfo.relation == 0)//0是用户，1是己方，2是敌方
+                                if (playerInfo.Relation == 1 || playerInfo.Relation == 0)//0是用户，1是己方，2是敌方
                                     playerInfo_team1.Add(playerInfo);
                                 else
                                     playerInfo_team2.Add(playerInfo);
 
-                                logShow(string.Format("正在读取对局信息({0}/{1})",
+                                LogShow(string.Format("正在读取对局信息({0}/{1})",
                                     readCount.ToString(),
-                                    PlayerGameInfoList.Count()));
+                                    PlayerGameInfoList.Count));
                             }
                         });
                         //绑定给前台
                         Dispatcher.Invoke(() =>
                         {
-                            team1.ItemsSource = playerInfo_team1.OrderByDescending(i => i.shipSort);
-                            team2.ItemsSource = playerInfo_team2.OrderByDescending(i => i.shipSort);
+                            //输出前进行排序，先按舰种次按等级排序
+                            team1.ItemsSource = playerInfo_team1.OrderByDescending(i => i.ShipTypeSort).ThenByDescending(i => i.ShipLevel_int);
+                            team2.ItemsSource = playerInfo_team2.OrderByDescending(i => i.ShipTypeSort).ThenByDescending(i => i.ShipLevel_int);
                         });
                         yuyukoGameInfo.SendInfoToYuyuko();
 
@@ -418,7 +416,7 @@ namespace wowsCheaterViewer
                     finally
                     {
                         sw.Stop();
-                        logShow("已读取对局文件，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒" + (string.IsNullOrEmpty(exceptionMessage) ? "" : "，" + exceptionMessage));
+                        LogShow("已读取对局文件，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒" + (string.IsNullOrEmpty(exceptionMessage) ? "" : "，" + exceptionMessage));
 
                         //每次读取完成后启用刷新按钮
                         Dispatcher.Invoke(() =>
@@ -432,14 +430,13 @@ namespace wowsCheaterViewer
                 });
             };
         }
-        private playerInfo parsePlayer(playerInfo playerInfo, PlayerGameInfoInRep PlayerGameInfoInRep)//解析单个玩家的json数据
+        private static PlayerInfo ParsePlayer(PlayerInfo playerInfo, PlayerGameInfoInRep PlayerGameInfoInRep)//解析单个玩家的json数据
         {
-            Stopwatch sw = new Stopwatch();
+            Stopwatch sw = new();
             sw.Start();
 
-            playerInfo.SetBasePlayerInfo(PlayerGameInfoInRep);//从rep里的文本获取基础信息
+            playerInfo.SetBasePlayerInfo(PlayerGameInfoInRep);
             playerInfo.GetPlayerId();//取玩家id
-            playerInfo.SetEmptyClanFile();//写入空文件用于上传军团信息
             playerInfo.GetBattleInfo_withBattleType("pvp");//获取pvp数据
             playerInfo.GetBattleInfo_withBattleType("rank_solo");//获取rank数据
             playerInfo.DeleteTempFiles();//删除临时文件
@@ -454,63 +451,36 @@ namespace wowsCheaterViewer
             Parallel.Invoke(
                 () =>//获取pvp数据
                 {
-                    Stopwatch sw_step = new Stopwatch();
-                    sw_step.Start();
-                    logShow("玩家" + playerInfo.playerId + "pvp查询开始");
                     playerInfo.GetBattleInfo_withBattleType("pvp");
-                    sw_step.Stop();
-                    logShow("玩家" + playerInfo.playerId + "pvp查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 },
                 () =>//获取rank数据
                 {
-                    Stopwatch sw_step = new Stopwatch();
-                    sw_step.Start();
-                    logShow("玩家" + playerInfo.playerId + "rank查询开始");
                     playerInfo.GetBattleInfo_withBattleType("rank_solo");
-                    sw_step.Stop();
-                    logShow("玩家" + playerInfo.playerId + "rank查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 },
                 () =>//获取军团数据
                 {
-                    Stopwatch sw_step = new Stopwatch();
-                    sw_step.Start();
-                    logShow("玩家" + playerInfo.playerId + "军团查询开始");
                     playerInfo.GetClanInfo();
-                    sw_step.Stop();
-                    logShow("玩家" + playerInfo.playerId + "军团查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 },
                 () =>//获取船数据
                 {
-                    Stopwatch sw_step = new Stopwatch();
-                    sw_step.Start();
-                    logShow("玩家" + playerInfo.playerId + "船查询开始");
                     playerInfo.GetShipInfo();
-                    sw_step.Stop();
-                    logShow("玩家" + playerInfo.playerId + "船查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 },
                 () =>//获取ban信息
                 {
-                    Stopwatch sw_step = new Stopwatch();
-                    sw_step.Start();
-                    logShow("玩家" + playerInfo.playerId + "ban查询开始");
                     playerInfo.GetBanInfo();
-                    sw_step.Stop();
-                    logShow("玩家" + playerInfo.playerId + "ban查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 },
                 () =>//获取标记信息
                 {
-                    Stopwatch sw_step = new Stopwatch();
-                    sw_step.Start();
-                    logShow("玩家" + playerInfo.playerId + "mark查询开始");
                     playerInfo.GetMarkInfo();
-                    sw_step.Stop();
-                    logShow("玩家" + playerInfo.playerId + "mark查询完成，耗时" + (sw_step.ElapsedMilliseconds / 1000).ToString() + "秒");
                 }
             );
             */
             sw.Stop();
-            Logger.logWrite("玩家"+playerInfo.playerId+"查询完成，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒");
+            Logger.LogWrite("玩家"+playerInfo.PlayerId+"查询完成，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒");
             return playerInfo;
         }
+
+        [System.Text.RegularExpressions.GeneratedRegex("(?<={\"matchGroup\").*(?=\"mapBorder\")")]
+        private static partial System.Text.RegularExpressions.Regex MatchInfoJsonInRep();
     }
 }

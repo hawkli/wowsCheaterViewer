@@ -4,165 +4,149 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-using Microsoft.WindowsAPICodePack.Dialogs;
+using System.Windows.Forms;
 
 namespace wowsCheaterViewer
 {
     public class Config
     {
         //用Lazy实现单实例
-        private static readonly Lazy<Config> _instance = new Lazy<Config>(() => new Config());
+        private static readonly Lazy<Config> _instance = new(() => new Config());
         public static Config Instance => _instance.Value;
 
         //config，会写入文件的属性
-        public string ignoreVisionTag { get; set; }
-        public string wowsRootPath { get; set; }
-        public Dictionary<string, List<MarkInfo>> mark { get; set; } = new Dictionary<string, List<MarkInfo>>();
-        public Dictionary<string, ShipInfo> shipInfo { get; set; } = new Dictionary<string, ShipInfo>();
+        public string? IgnoreVersionTag { get; set; }
+        private string? _replayPath;
+        public string? ReplayPath
+        {
+            get => _replayPath;
+            set
+            {
+                _replayPath = value;
+                CheckRootPath();//每当路径初始化或变更时，检查是否可用
+            }
+        }
+        public Dictionary<string, List<MarkInfo>> Mark { get; set; } = new Dictionary<string, List<MarkInfo>>();
+        public Dictionary<string, ShipInfo> ShipInfo { get; set; } = new Dictionary<string, ShipInfo>();
 
-        //config，不写入文件的属性
+        //config，不写入文件的静态变量和常量
+        public const string versionTag = "2023.06.08";
+        public const string updateFolderPath = ".update";
+        public const string tempFolderPath = ".temp";
+        private const string configPath = @"config.json";
         public static bool watchFlag = false;
-        public static string visionTag = "2023.06.09";
-        public static string updateFolderPath = ".update";
-        public static string tempFolderPath = ".temp";
-        private static string configPath = @"config.json";
-        private static readonly object writerLock = new object();
+        public static string watchMessage = "未设定游戏路径";
+        private static readonly object writerLock = new();
 
         //方法
-        public void init()//初始化
+        public void Init()//初始化
         {
-            if (File.Exists(configPath))
+            try
             {
-                string configStr = File.ReadAllText(configPath);
-                JObject configJson = JObject.Parse(configStr);
-
-                if (configJson.ContainsKey("wowsRootPath"))
-                    wowsRootPath = configJson["wowsRootPath"].ToString();
-
-                if (configJson.ContainsKey("ignoreVisionTag"))
-                    ignoreVisionTag = configJson["ignoreVisionTag"].ToString();
-
-                if (configJson.ContainsKey("shipInfo"))
-                    shipInfo = JsonConvert.DeserializeObject<Dictionary<string, ShipInfo>>(configJson["shipInfo"].ToString());
-
-                if (configJson.ContainsKey("mark"))
-                {
-                    try
-                    {
-                        //顺利读取
-                        mark = JsonConvert.DeserializeObject<Dictionary<string, List<MarkInfo>>>(configJson["mark"].ToString());
-                    }
-                    catch
-                    {
-                        //读取失败时（老版本兼容），按结构新建
-                        Dictionary<string, string> mark_old = JsonConvert.DeserializeObject<Dictionary<string, string>>(configJson["mark"].ToString());
-                        foreach (KeyValuePair<string, string> item in mark_old)
-                            mark[item.Key] = new List<MarkInfo> { new MarkInfo { markMessage = item.Value } };
-                        update();
-                    }
-                }
+                if (File.Exists(configPath))
+                    JsonConvert.PopulateObject(File.ReadAllText(configPath), this);
+                else
+                    Update(); //不存在时说明首次运行，此时新建配置文件
             }
-            else
+            catch(Exception ex)
             {
-                update();
+                Update();//读取失败时重建配置文件
+                Logger.LogWrite("读取配置文件失败，已重建，"+ex.Message);
             }
-            watchFlag = checkRootPath(wowsRootPath);
         }
-        public void update()//更新配置文件
+        public void Update()//更新配置文件
         {
             lock (writerLock)
             {
-                StreamWriter sw = new StreamWriter(configPath);
+                StreamWriter sw = new(configPath);
                 sw.Write(JsonConvert.SerializeObject(this).ToString());
                 sw.Close();
             }
         }
-        public void resetRootPath()//重设路径
+        public void ResetRootPath()//重设路径
         {
-            string newPath = null;
-            CommonOpenFileDialog dlg = new CommonOpenFileDialog();
-            dlg.IsFolderPicker = true;
-            dlg.InitialDirectory = @"C:\";
-
-            if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
-                newPath = dlg.FileName;
-
-            if (checkRootPath(newPath))
+            FolderBrowserDialog dlg = new();
+            if (dlg.ShowDialog() == DialogResult.OK)
             {
-                wowsRootPath = newPath;
+                ReplayPath = dlg.SelectedPath;
+                CheckRootPath();
+            }
+        }
+        private void CheckRootPath()//检查游戏路径
+        {
+            if (!string.IsNullOrEmpty(_replayPath))
+            {
                 watchFlag = true;
-                update();
-                Logger.logWrite("重设路径成功");
+                bool parentDirectoryContainsWowsExe = File.Exists(Path.Combine(Directory.GetParent(_replayPath)?.FullName!, "WorldOfWarships.exe"));
+                bool directoryNameContainsReplays = _replayPath.Split('\\').Last().ToLower().Contains("replays");
+                if (directoryNameContainsReplays && parentDirectoryContainsWowsExe)
+                    watchMessage = "路径设置成功：";
+                else if (directoryNameContainsReplays && !parentDirectoryContainsWowsExe)
+                    watchMessage = "路径设置成功，但它似乎不在游戏根目录下，请确保对局自动生成的[tempArenaInfo.json]文件在此文件夹中：";
+                else
+                    watchMessage = "路径设置成功，但它似乎不是rep文件夹，请确保对局自动生成的[tempArenaInfo.json]文件在此文件夹中：";
+                Update();
             }
-
-        }
-        private bool checkRootPath(string path)//检查游戏路径
-        {
-            bool checkRootPath = false;
-            if (!string.IsNullOrEmpty(path))
+            else
             {
-                string repFolderPath = System.IO.Path.Combine(path, "replays");
-                string wowsExeFilePath = System.IO.Path.Combine(path, "WorldOfWarships.exe");
-                if (Directory.Exists(path))
-                    if (Directory.GetFiles(path).Contains(wowsExeFilePath) || Directory.GetDirectories(path).Contains(repFolderPath))
-                        checkRootPath = true;
+                watchMessage = "未设定游戏根路径，无法监控对局：";
             }
-
-            if(!checkRootPath)
-                Logger.logWrite("路径：" + path + "似乎不是游戏根目录，请重新选择");
-
-            return checkRootPath;
+            Logger.LogWrite(watchMessage);
         }
 
-        public void addMarkInfo(playerInfo playerInfo)//新增标记
+        public void AddMarkInfo(PlayerInfo playerInfo)//新增标记
         {
-            MarkInfo MarkInfo = new MarkInfo();
-            MarkInfo.markTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            MarkInfo.clanTag = playerInfo.clanTag;
-            MarkInfo.name = playerInfo.name;
-            MarkInfo.markMessage = playerInfo.markMessage;
+            MarkInfo MarkInfo = new()
+            {
+                ClanTag = playerInfo.ClanTag,
+                Name = playerInfo.Name,
+                MarkMessage = playerInfo.MarkMessage
+            };
 
             //标记记录玩家的id，如果id未获取到，设为玩家名称
-            string markKey = playerInfo.playerId;
-            if (playerInfo.playerId == "0")
-                markKey = playerInfo.name;
+            string markKey;
+            if (playerInfo.PlayerId == 0)
+                markKey = playerInfo.Name;
+            else
+                markKey = playerInfo.PlayerId.ToString();
 
             //已有玩家信息就增加，没有就新建
-            if (mark.Keys.Contains(markKey))
-                mark[markKey].Add(MarkInfo);
+            if (Mark.ContainsKey(markKey!))
+                Mark[markKey].Add(MarkInfo);
             else
-                mark[markKey] = new List<MarkInfo> { MarkInfo };
+                Mark[markKey] = new List<MarkInfo> { MarkInfo };
 
-            Logger.logWrite("已更新标记玩家：" + markKey + "，标记内容：" + playerInfo.markMessage);
-            update();
+            Logger.LogWrite("已更新标记玩家：" + markKey + "，标记内容：" + playerInfo.MarkMessage);
+            Update();
         }
 
-        public void addShipInfo(string shipId, ShipInfo ShipInfo)//新增船信息
+        public void AddShipInfo(int shipId, ShipInfo ShipInfo)//新增船信息
         {
-            if (!shipInfo.Keys.Contains(shipId))
-                shipInfo[shipId] = ShipInfo;
-            Logger.logWrite("已新增船id：" + shipId );
-            update();
+            if (!this.ShipInfo.ContainsKey(shipId.ToString()))
+                this.ShipInfo[shipId.ToString()] = ShipInfo;
+            Logger.LogWrite("已新增船id：" + shipId );
+            Update();
         }
     }
 
 
     public class MarkInfo
     {
-        public string markTime { get; set; }
-        public string clanTag { get; set; }
-        public string name { get; set; }
-        public string markMessage { get; set; }
+        public string? MarkTime { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        public string? ClanTag { get; set; }
+        public string? Name { get; set; }
+        public string? MarkMessage { get; set; }
+
     }
 
     public class ShipInfo
     {
-        public string nameCn { get; set; }
-        public string nameEnglish { get; set; }
-        public int level { get; set; }
-        public string shipType { get; set; }
-        public string country { get; set; }
-        public string shipIndex { get; set; }
-        public string groupType { get; set; }
+        public string? NameCn { get; set; }
+        public string? NameEnglish { get; set; }
+        public int Level { get; set; }
+        public string? ShipType { get; set; }
+        public string? Country { get; set; }
+        public string? ShipIndex { get; set; }
+        public string? GroupType { get; set; }
     }
 }

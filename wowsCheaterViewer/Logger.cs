@@ -21,8 +21,8 @@ namespace wowsCheaterViewer
         }
 
         //用锁定防止并行占进程
-        private static readonly object writerLock = new object();
-        public static void logWrite(string message)
+        private static readonly object writerLock = new();
+        public static void LogWrite(string? message = null)
         {
             lock (writerLock)
             {
