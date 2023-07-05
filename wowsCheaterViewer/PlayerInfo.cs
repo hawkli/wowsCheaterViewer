@@ -11,13 +11,13 @@ namespace wowsCheaterViewer
     public class PlayerInfo : PlayerGameInfoInRep
     {
         private const string errorMessage = "error";
-        public int PlayerId { get; set; } = 0;//默认值给0，方便提供给yuyuko
+        public long PlayerId { get; set; } = 0;//默认值给0，方便提供给yuyuko
         public string? PlayerPrColor { get; set; } = "Gray";//默认灰色（隐藏战绩或读取失败）
         public bool IsHidden { get; set; }
 
 
         public string? ClanTag { get; set; }
-        public int ClanId { get; set; } = 0;//默认值给0，方便提供给yuyuko
+        public long ClanId { get; set; } = 0;//默认值给0，方便提供给yuyuko
         public string? ClanColor { get; set; }
 
 
@@ -100,7 +100,7 @@ namespace wowsCheaterViewer
                 JObject result_getPlayerId = JObject.Parse(ApiClient.GetPlayerId(Name)!);
                 if (JArray.FromObject(result_getPlayerId["data"]!).Count == 0)
                     throw new Exception("未能获取玩家id，可能已改名。");
-                PlayerId = (int)result_getPlayerId["data"]?[0]?["spa_id"]!;
+                PlayerId = (long)result_getPlayerId["data"]?[0]?["spa_id"]!;
                 IsHidden = Convert.ToBoolean(result_getPlayerId["data"]?[0]?["hidden"]);
                 clanEmptyFilePath = WriteFile(PlayerId + "_clan.txt", "");//写入空文件用于上传军团信息
                 tempFiles.Add(clanEmptyFilePath);
@@ -173,7 +173,7 @@ namespace wowsCheaterViewer
                 JObject PlayersClanInfoJo = JObject.Parse(PlayersClanInfoStr!);
                 if(!string.IsNullOrEmpty(PlayersClanInfoJo["data"]?["clan_id"]?.ToString()))
                 {
-                    ClanId = (int)PlayersClanInfoJo["data"]?["clan_id"]!;
+                    ClanId = (long)PlayersClanInfoJo["data"]?["clan_id"]!;
                     ClanTag = "[" + PlayersClanInfoJo["data"]?["clan"]?["tag"]?.ToString() + "]";
                     ClanColor = "#" + Convert.ToInt32(PlayersClanInfoJo["data"]?["clan"]?["color"]).ToString("X");
                 }
@@ -336,11 +336,11 @@ namespace wowsCheaterViewer
     public class YuyukoPlayerInfo//为yuyuko机器人收集信息用的子类
     {
         public string Server { get; set; } = "cn";
-        public int AccountId { get; set; }
+        public long AccountId { get; set; }
         public string? UserName { get; set; }
-        public int ShipId { get; set; }
+        public long ShipId { get; set; }
         public bool Hidden { get; set; }
-        public int ClanId { get; set; }
+        public long ClanId { get; set; }
         public string? Tag { get; set; }
         public int Relation { get; set; }
     }
@@ -348,9 +348,9 @@ namespace wowsCheaterViewer
     public class PlayerGameInfoInRep//从rep文件里获取的玩家信息
     {
         private string? _name;
-        public int ShipId { get; set; }
+        public long ShipId { get; set; }
         public int Relation { get; set; }
-        public int Id { get; set; }
+        public long Id { get; set; }
         public string Name
         {
             get => _name!;

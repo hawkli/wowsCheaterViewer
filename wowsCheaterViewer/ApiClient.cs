@@ -116,32 +116,32 @@ namespace wowsCheaterViewer
             string url = address_official + "/api/accounts/search/autocomplete/" + Uri.EscapeDataString(playerName);
             return GetClientAsync(url).Result;
         }
-        public static string? GetPlayerInfo_official(int playerId)//通过玩家id获取官方的玩家信息
+        public static string? GetPlayerInfo_official(long playerId)//通过玩家id获取官方的玩家信息
         {
             string url = address_official + "/api/accounts/" + playerId;
             return GetClientAsync(url).Result;
         }
-        public static string? GetPalyersShipsInfo_official(int playerId, string battleType)//通过玩家id获取官方的玩家船信息
+        public static string? GetPalyersShipsInfo_official(long playerId, string battleType)//通过玩家id获取官方的玩家船信息
         {
             string url = address_official + "/api/accounts/" + playerId + "/ships/" + battleType.ToLower();
             return GetClientAsync(url).Result;
         }
-        public static string? GetPalyersClansInfo_official(int playerId)//通过玩家id获取官方的玩家军团信息
+        public static string? GetPalyersClansInfo_official(long playerId)//通过玩家id获取官方的玩家军团信息
         {
             string url = address_official + "/api/accounts/" + playerId + "/clans";
             return GetClientAsync(url).Result;
         }
-        public static string? GetPlayerInfo_yuyuko(int playerId)//通过玩家id获取yuyuko的玩家信息
+        public static string? GetPlayerInfo_yuyuko(long playerId)//通过玩家id获取yuyuko的玩家信息
         {
             string url = address_yuyukoWowsApi_域名3 + "/public/wows/account/user/info?server=cn&accountId=" + playerId;
             return GetClientAsync(url).Result;
         }
-        public static string? GetPlayerShipInfo_yuyuko(int playerId, int shipId)//通过玩家id和船id获取yuyuko(old)的玩家单船信息
+        public static string? GetPlayerShipInfo_yuyuko(long playerId, long shipId)//通过玩家id和船id获取yuyuko(old)的玩家单船信息
         {
             string url = address_yuyukoWowsApi_域名3 + "/public/wows/account/ship/info?accountId=" + playerId + "&server=cn&shipId=" + shipId;
             return GetClientAsync(url).Result;
         }
-        public static string? GetPlayerBanInfo_yuyuko(int playerId)//通过玩家id获取yuyuko的ban信息
+        public static string? GetPlayerBanInfo_yuyuko(long playerId)//通过玩家id获取yuyuko的ban信息
         {
             string url = address_yuyukoWowsApi_域名3 + "/public/wows/ban/cn/user";
             Dictionary<string, string> contantDictionary = new()
@@ -150,17 +150,17 @@ namespace wowsCheaterViewer
             };
             return PostClientAsync(url, JsonConvert.SerializeObject(contantDictionary), null).Result;
         }
-        public static string? GetShipInfo(int shipId)//通过船id获取yuyuko的船信息
+        public static string? GetShipInfo(long shipId)//通过船id获取yuyuko的船信息
         {
             string url = address_yuyukoWowsApi_域名3 + "/public/wows/encyclopedia/ship/info?shipId=" + shipId;
             return GetClientAsync(url).Result;
         }
-        public static string? GetPlayerShipRankSort(int playerId, int shipId)//通过玩家id和船id获取yuyuko的排行，顺便帮雨季收集玩家信息
+        public static string? GetPlayerShipRankSort(long playerId, long shipId)//通过玩家id和船id获取yuyuko的排行，顺便帮雨季收集玩家信息
         {
             string url = address_yuyuko战舰世界API平台接口处理与反向代理 + "/wows/rank/cn/sort/" + playerId + "/" + shipId;
             return GetClientAsync(url).Result;
         }
-        public static string? GetParsedPlayerInfo_yuyuko(int playerId, int shipId, string battleType, string uploadFilePath, string clanFilePath)//用官网返回的信息写入文件，让yuyuko解析
+        public static string? GetParsedPlayerInfo_yuyuko(long playerId, long shipId, string battleType, string uploadFilePath, string clanFilePath)//用官网返回的信息写入文件，让yuyuko解析
         {
             string url = address_yuyuko战舰世界API平台接口处理与反向代理 + "/process/wows/user/info/cn/upload/vortex/data/" + battleType.ToUpper() + "/battle/" + playerId + "/query/" + shipId;
             return PostClientAsync(url, null, new Dictionary<string, string> { { "files", uploadFilePath }, { "clan", clanFilePath } }).Result;
