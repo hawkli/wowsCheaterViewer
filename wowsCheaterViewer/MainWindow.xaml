@@ -72,14 +72,14 @@
                                         <ColumnDefinition Width="10"/>
                                         <ColumnDefinition/>
                                     </Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Background="{Binding playerPrColor}" />
+                                    <Border Grid.Column="0" Background="{Binding PlayerPrColor}" />
                                     <TextBlock Grid.Column="1">
                                     <Run />
-                                    <Run Text="{Binding clanTag}" Foreground="{Binding clanColor}"/>
-                                    <Run Text="{Binding name}"/>
+                                    <Run Text="{Binding ClanTag}" Foreground="{Binding ClanColor}"/>
+                                    <Run Text="{Binding Name}"/>
                                     <Run Text="&#13;"/>
-                                    <Run Text="{Binding shipLevel_roman}"/>
-                                    <Run Text="{Binding shipName}"/>
+                                    <Run Text="{Binding ShipLevel_roman}"/>
+                                    <Run Text="{Binding ShipName}"/>
                                     </TextBlock>
                                 </Grid>
                             </DataTemplate>
@@ -90,9 +90,9 @@
                             <DataTemplate>
                                 <TextBlock>
                                     <Run />
-                                    <Run Text="{Binding winRate_ship}"/>
+                                    <Run Text="{Binding WinRate_ship}"/>
                                     <Run Text="&#13;"/>
-                                    <Run Text="{Binding battleCount_ship}"/>
+                                    <Run Text="{Binding BattleCount_ship}"/>
                                 </TextBlock>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -102,9 +102,9 @@
                             <DataTemplate>
                                 <TextBlock>
                                     <Run />
-                                    <Run Text="{Binding winRate_pvp}"/>
+                                    <Run Text="{Binding WinRate_pvp}"/>
                                     <Run Text="&#13;"/>
-                                    <Run Text="{Binding battleCount_pvp}"/>
+                                    <Run Text="{Binding BattleCount_pvp}"/>
                                 </TextBlock>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -114,9 +114,9 @@
                             <DataTemplate>
                                 <TextBlock>
                                     <Run />
-                                    <Run Text="{Binding winRate_rank}"/>
+                                    <Run Text="{Binding WinRate_rank}"/>
                                     <Run Text="&#13;"/>
-                                    <Run Text="{Binding battleCount_rank}"/>
+                                    <Run Text="{Binding BattleCount_rank}"/>
                                 </TextBlock>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -124,9 +124,9 @@
                     <DataGridTemplateColumn Header="封禁匹配" Width="60">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Background="{Binding banColor}" Text="{Binding banMatch}">
+                                <TextBlock Background="{Binding BanColor}" Text="{Binding BanMatch}">
                                     <TextBlock.ToolTip>
-                                        <TextBlock Text="{Binding banMatch_fullStr}"/>
+                                        <TextBlock Text="{Binding BanMatch_fullStr}"/>
                                     </TextBlock.ToolTip>
                                 </TextBlock>
                             </DataTemplate>
@@ -135,9 +135,9 @@
                     <DataGridTemplateColumn Header="标记" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="MarkMessageChangedEvent">
+                                <TextBox Text="{Binding MarkMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="MarkMessageChangedEvent">
                                     <TextBox.ToolTip>
-                                        <TextBlock Text="{Binding lastMarkMessage}"/>
+                                        <TextBlock Text="{Binding LastMarkMessage}"/>
                                     </TextBox.ToolTip>
                                 </TextBox>
                             </DataTemplate>
@@ -157,14 +157,14 @@
                                         <ColumnDefinition Width="10"/>
                                         <ColumnDefinition/>
                                     </Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Background="{Binding playerPrColor}" />
+                                    <Border Grid.Column="0" Background="{Binding PlayerPrColor}" />
                                     <TextBlock Grid.Column="1">
                                     <Run />
-                                    <Run Text="{Binding clanTag}" Foreground="{Binding clanColor}"/>
-                                    <Run Text="{Binding name}"/>
+                                    <Run Text="{Binding ClanTag}" Foreground="{Binding ClanColor}"/>
+                                    <Run Text="{Binding Name}"/>
                                     <Run Text="&#13;"/>
-                                    <Run Text="{Binding shipLevel_roman}"/>
-                                    <Run Text="{Binding shipName}"/>
+                                    <Run Text="{Binding ShipLevel_roman}"/>
+                                    <Run Text="{Binding ShipName}"/>
                                     </TextBlock>
                                 </Grid>
                             </DataTemplate>
@@ -175,9 +175,9 @@
                             <DataTemplate>
                                 <TextBlock>
                                     <Run />
-                                    <Run Text="{Binding winRate_ship}"/>
+                                    <Run Text="{Binding WinRate_ship}"/>
                                     <Run Text="&#13;"/>
-                                    <Run Text="{Binding battleCount_ship}"/>
+                                    <Run Text="{Binding BattleCount_ship}"/>
                                 </TextBlock>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -187,9 +187,9 @@
                             <DataTemplate>
                                 <TextBlock>
                                     <Run />
-                                    <Run Text="{Binding winRate_pvp}"/>
+                                    <Run Text="{Binding WinRate_pvp}"/>
                                     <Run Text="&#13;"/>
-                                    <Run Text="{Binding battleCount_pvp}"/>
+                                    <Run Text="{Binding BattleCount_pvp}"/>
                                 </TextBlock>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -199,9 +199,9 @@
                             <DataTemplate>
                                 <TextBlock>
                                     <Run />
-                                    <Run Text="{Binding winRate_rank}"/>
+                                    <Run Text="{Binding WinRate_rank}"/>
                                     <Run Text="&#13;"/>
-                                    <Run Text="{Binding battleCount_rank}"/>
+                                    <Run Text="{Binding BattleCount_rank}"/>
                                 </TextBlock>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -209,9 +209,9 @@
                     <DataGridTemplateColumn Header="封禁匹配" Width="60">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Background="{Binding banColor}" Text="{Binding banMatch}">
+                                <TextBlock Background="{Binding BanColor}" Text="{Binding BanMatch}">
                                     <TextBlock.ToolTip>
-                                        <TextBlock Text="{Binding banMatch_fullStr}"/>
+                                        <TextBlock Text="{Binding BanMatch_fullStr}"/>
                                     </TextBlock.ToolTip>
                                 </TextBlock>
                             </DataTemplate>
@@ -220,9 +220,9 @@
                     <DataGridTemplateColumn Header="标记" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBox Text="{Binding markMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="MarkMessageChangedEvent">
+                                <TextBox Text="{Binding MarkMessage,Mode=TwoWay,UpdateSourceTrigger=LostFocus}" LostFocus="MarkMessageChangedEvent">
                                     <TextBox.ToolTip>
-                                        <TextBlock Text="{Binding lastMarkMessage}"/>
+                                        <TextBlock Text="{Binding LastMarkMessage}"/>
                                     </TextBox.ToolTip>
                                 </TextBox>
                             </DataTemplate>
@@ -230,7 +230,6 @@
                     </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
-
         </Grid>
     </Grid>
 </Window>

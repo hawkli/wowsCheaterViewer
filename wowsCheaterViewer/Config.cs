@@ -120,7 +120,7 @@ namespace wowsCheaterViewer
             Update();
         }
 
-        public void AddShipInfo(int shipId, ShipInfo ShipInfo)//新增船信息
+        public void AddShipInfo(long shipId, ShipInfo ShipInfo)//新增船信息
         {
             if (!this.ShipInfo.ContainsKey(shipId.ToString()))
                 this.ShipInfo[shipId.ToString()] = ShipInfo;
