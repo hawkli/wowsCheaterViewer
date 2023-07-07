@@ -76,6 +76,7 @@ namespace wowsCheaterViewer
         private void CheckRootPath()//检查游戏路径
         {
             watchFlag = false;
+            //只有填了值且路径存在的时候才开启监控
             if (!string.IsNullOrEmpty(ReplayPath))
                 if(Directory.Exists(ReplayPath))
                     watchFlag = true;
@@ -94,7 +95,7 @@ namespace wowsCheaterViewer
             }
             else
             {
-                watchMessage = "未设定回放文件路径，或路径有误，无法监控对局：";
+                watchMessage = "未设定回放文件路径或路径有误，无法监控对局：";
             }
             Logger.LogWrite(watchMessage);
         }
@@ -121,7 +122,7 @@ namespace wowsCheaterViewer
             else
                 Mark[markKey] = new List<MarkInfo> { MarkInfo };
 
-            Logger.LogWrite("已更新标记玩家：" + markKey + "，标记内容：" + playerInfo.MarkMessage);
+            Logger.LogWrite($"已更新标记玩家：{markKey}，标记内容：{playerInfo.MarkMessage}");
             Update();
         }
 
