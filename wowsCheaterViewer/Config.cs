@@ -53,6 +53,7 @@ namespace wowsCheaterViewer
                 Update();//读取失败时重建配置文件
                 Logger.LogWrite("读取配置文件失败，已重建，"+ex.Message);
             }
+            CheckRootPath();
         }
         public void Update()//更新配置文件
         {
@@ -74,11 +75,15 @@ namespace wowsCheaterViewer
         }
         private void CheckRootPath()//检查游戏路径
         {
-            if (!string.IsNullOrEmpty(_replayPath))
+            watchFlag = false;
+            if (!string.IsNullOrEmpty(ReplayPath))
+                if(Directory.Exists(ReplayPath))
+                    watchFlag = true;
+
+            if (watchFlag)
             {
-                watchFlag = true;
-                bool parentDirectoryContainsWowsExe = File.Exists(Path.Combine(Directory.GetParent(_replayPath)?.FullName!, "WorldOfWarships.exe"));
-                bool directoryNameContainsReplays = _replayPath.Split('\\').Last().ToLower().Contains("replays");
+                bool parentDirectoryContainsWowsExe = File.Exists(Path.Combine(Directory.GetParent(ReplayPath)?.FullName!, "WorldOfWarships.exe"));
+                bool directoryNameContainsReplays = ReplayPath.Split('\\').Last().ToLower().Contains("replays");
                 if (directoryNameContainsReplays && parentDirectoryContainsWowsExe)
                     watchMessage = "路径设置成功：";
                 else if (directoryNameContainsReplays && !parentDirectoryContainsWowsExe)
@@ -89,7 +94,7 @@ namespace wowsCheaterViewer
             }
             else
             {
-                watchMessage = "未设定游戏根路径，无法监控对局：";
+                watchMessage = "未设定回放文件路径，或路径有误，无法监控对局：";
             }
             Logger.LogWrite(watchMessage);
         }
