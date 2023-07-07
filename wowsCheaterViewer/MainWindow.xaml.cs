@@ -374,6 +374,7 @@ namespace wowsCheaterViewer
                             PlayerInfo playerInfo = new();
                             try
                             {
+                                Thread.Sleep(300 * i);//并行调用之间延迟300毫秒，避免360接口提示调用过多的问题
                                 playerInfo = ParsePlayer(playerInfo,PlayerGameInfoList[i]);
                             }
                             catch(Exception ex)
