@@ -30,7 +30,7 @@ namespace wowsCheaterViewer
         public Dictionary<string, ShipInfo> ShipInfo { get; set; } = new Dictionary<string, ShipInfo>();
 
         //config，不写入文件的静态变量和常量
-        public const string versionTag = "2023.06.08";
+        public const string versionTag = "2023.07.17";
         public const string updateFolderPath = ".update";
         public const string tempFolderPath = ".temp";
         private const string configPath = @"config.json";
