@@ -16,6 +16,7 @@ using Microsoft.VisualBasic;
 using System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
 using System.Net.Http;
+using System.Windows.Documents;
 
 namespace wowsCheaterViewer
 {
@@ -248,10 +249,11 @@ namespace wowsCheaterViewer
                 {
                     try
                     {
+                        //解析输入文本
                         PlayerGameInfoInRep PlayerGameInfoInRep = new();
                         try { PlayerGameInfoInRep = JsonConvert.DeserializeObject<PlayerGameInfoInRep>(debugStr)!; }
                         catch (Exception ex) { throw new Exception("输入文本有误：" + ex.Message); }
-
+                        //解析玩家信息
                         PlayerInfo playerInfo = ParsePlayer(new PlayerInfo(), PlayerGameInfoInRep);
                         PropertyInfo[] properties = playerInfo.GetType().GetProperties();
                         for (int i = 0; i < properties.Length; i++)
@@ -325,6 +327,7 @@ namespace wowsCheaterViewer
                 infoStr = sr.ReadLine();
                 sr.Close();
 
+                //读取rep文件中有效的对局信息，截取matchGroup开头，mapBorder结尾的字符串
                 infoStr = @"{""matchGroup""" +
                     MatchInfoJsonInRep().Match(infoStr!).ToString() +
                     @"""mapBorder"": null}";
@@ -361,9 +364,10 @@ namespace wowsCheaterViewer
                         List<PlayerInfo> playerInfo_team1 = new();
                         List<PlayerInfo> playerInfo_team2 = new();
                         int readCount = 0;
-                        int failedList = 0;
+                        List<string> failedList = new();
                         List<PlayerGameInfoInRep> PlayerGameInfoList = JsonConvert.DeserializeObject<List<PlayerGameInfoInRep>>(infoJson["vehicles"]?.ToString()!)!;
                         
+                        //建立反馈信息的类，并补充时间和战斗类型
                         YuyukoGameInfo yuyukoGameInfo = new();
                         yuyukoGameInfo.SetTime(infoJson["dateTime"]?.ToString()!);
                         yuyukoGameInfo.BattleType = infoJson["matchGroup"]?.ToString()!;
@@ -374,27 +378,26 @@ namespace wowsCheaterViewer
                             PlayerInfo playerInfo = new();
                             try
                             {
+                                Thread.Sleep(300 * i);//并行调用之间延迟300毫秒，避免360接口提示调用过多的问题
                                 playerInfo = ParsePlayer(playerInfo,PlayerGameInfoList[i]);
                             }
                             catch(Exception ex)
                             {
-                                failedList++;
+                                failedList.Add(PlayerGameInfoList[i].Name);
                                 Logger.LogWrite("玩家信息读取失败，" + ex.Message + Environment.NewLine + 
                                     JsonConvert.SerializeObject(PlayerGameInfoList[i]).ToString());
                             }
                             finally
                             {
                                 readCount++;
-                                yuyukoGameInfo.AddYuyukoPlayerInfo(playerInfo);
+                                yuyukoGameInfo.AddYuyukoPlayerInfo(playerInfo);//添加到反馈信息
                                 
                                 if (playerInfo.Relation == 1 || playerInfo.Relation == 0)//0是用户，1是己方，2是敌方
                                     playerInfo_team1.Add(playerInfo);
                                 else
                                     playerInfo_team2.Add(playerInfo);
 
-                                LogShow(string.Format("正在读取对局信息({0}/{1})",
-                                    readCount.ToString(),
-                                    PlayerGameInfoList.Count));
+                                LogShow($"正在读取对局信息({readCount}/{PlayerGameInfoList.Count})");
                             }
                         });
                         //绑定给前台
@@ -404,10 +407,10 @@ namespace wowsCheaterViewer
                             team1.ItemsSource = playerInfo_team1.OrderByDescending(i => i.ShipTypeSort).ThenByDescending(i => i.ShipLevel_int);
                             team2.ItemsSource = playerInfo_team2.OrderByDescending(i => i.ShipTypeSort).ThenByDescending(i => i.ShipLevel_int);
                         });
-                        yuyukoGameInfo.SendInfoToYuyuko();
+                        yuyukoGameInfo.SendInfoToYuyuko();//发送反馈信息
 
-                        if (failedList > 0)
-                            exceptionMessage = "有" + failedList.ToString() + "个玩家读取失败";
+                        if (failedList.Count > 0)
+                            exceptionMessage = $"玩家{string.Join(",",failedList)}读取失败";
                     }
                     catch (Exception ex)
                     {
@@ -416,7 +419,9 @@ namespace wowsCheaterViewer
                     finally
                     {
                         sw.Stop();
-                        LogShow("已读取对局文件，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒" + (string.IsNullOrEmpty(exceptionMessage) ? "" : "，" + exceptionMessage));
+                        if (!string.IsNullOrEmpty(exceptionMessage))
+                            exceptionMessage = "，发生异常：" + exceptionMessage;
+                        LogShow($"已读取对局文件，耗时{(sw.ElapsedMilliseconds / 1000)}秒{exceptionMessage}");
 
                         //每次读取完成后启用刷新按钮
                         Dispatcher.Invoke(() =>

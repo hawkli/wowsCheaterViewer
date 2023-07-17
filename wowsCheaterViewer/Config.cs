@@ -30,7 +30,7 @@ namespace wowsCheaterViewer
         public Dictionary<string, ShipInfo> ShipInfo { get; set; } = new Dictionary<string, ShipInfo>();
 
         //config，不写入文件的静态变量和常量
-        public const string versionTag = "2023.06.08";
+        public const string versionTag = "2023.07.17";
         public const string updateFolderPath = ".update";
         public const string tempFolderPath = ".temp";
         private const string configPath = @"config.json";
@@ -53,6 +53,7 @@ namespace wowsCheaterViewer
                 Update();//读取失败时重建配置文件
                 Logger.LogWrite("读取配置文件失败，已重建，"+ex.Message);
             }
+            CheckRootPath();
         }
         public void Update()//更新配置文件
         {
@@ -74,11 +75,16 @@ namespace wowsCheaterViewer
         }
         private void CheckRootPath()//检查游戏路径
         {
-            if (!string.IsNullOrEmpty(_replayPath))
+            watchFlag = false;
+            //只有填了值且路径存在的时候才开启监控
+            if (!string.IsNullOrEmpty(ReplayPath))
+                if(Directory.Exists(ReplayPath))
+                    watchFlag = true;
+
+            if (watchFlag)
             {
-                watchFlag = true;
-                bool parentDirectoryContainsWowsExe = File.Exists(Path.Combine(Directory.GetParent(_replayPath)?.FullName!, "WorldOfWarships.exe"));
-                bool directoryNameContainsReplays = _replayPath.Split('\\').Last().ToLower().Contains("replays");
+                bool parentDirectoryContainsWowsExe = File.Exists(Path.Combine(Directory.GetParent(ReplayPath)?.FullName!, "WorldOfWarships.exe"));
+                bool directoryNameContainsReplays = ReplayPath.Split('\\').Last().ToLower().Contains("replays");
                 if (directoryNameContainsReplays && parentDirectoryContainsWowsExe)
                     watchMessage = "路径设置成功：";
                 else if (directoryNameContainsReplays && !parentDirectoryContainsWowsExe)
@@ -89,7 +95,7 @@ namespace wowsCheaterViewer
             }
             else
             {
-                watchMessage = "未设定游戏根路径，无法监控对局：";
+                watchMessage = "未设定回放文件路径或路径有误，无法监控对局：";
             }
             Logger.LogWrite(watchMessage);
         }
@@ -116,7 +122,7 @@ namespace wowsCheaterViewer
             else
                 Mark[markKey] = new List<MarkInfo> { MarkInfo };
 
-            Logger.LogWrite("已更新标记玩家：" + markKey + "，标记内容：" + playerInfo.MarkMessage);
+            Logger.LogWrite($"已更新标记玩家：{markKey}，标记内容：{playerInfo.MarkMessage}");
             Update();
         }
 
