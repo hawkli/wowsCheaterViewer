@@ -16,7 +16,6 @@ using Microsoft.VisualBasic;
 using System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
 using System.Net.Http;
-using System.Windows.Documents;
 
 namespace wowsCheaterViewer
 {
@@ -175,8 +174,31 @@ namespace wowsCheaterViewer
             Dispatcher.Invoke(() => logText.Text = message);
             Logger.LogWrite(message);
         }
-        
-        
+        private void CopyBan_Click(object sender, RoutedEventArgs e)//复制封禁信息
+        {
+            string? toCopy;
+            
+            if (this.team1.SelectedIndex >= 0)
+            {
+                PlayerInfo pl = (PlayerInfo)this.team1.Items[this.team1.SelectedIndex];
+                toCopy = pl.BanMatch_fullStr;
+            }
+            else if (this.team2.SelectedIndex >= 0)
+            {
+                PlayerInfo pl = (PlayerInfo)this.team2.Items[this.team2.SelectedIndex];
+                toCopy = pl.BanMatch_fullStr;
+            }
+            else
+            {
+                LogShow("复制封禁信息失败，未能定位到玩家所在队伍");
+                toCopy = null;
+            }
+            if(toCopy!=null)
+            {
+                System.Windows.Clipboard.SetDataObject(toCopy);
+            }
+        }
+
         private void ReadmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
         {
             ReadMeWindow window = new();
@@ -487,5 +509,6 @@ namespace wowsCheaterViewer
 
         [System.Text.RegularExpressions.GeneratedRegex("(?<={\"matchGroup\").*(?=\"mapBorder\")")]
         private static partial System.Text.RegularExpressions.Regex MatchInfoJsonInRep();
+
     }
 }

@@ -209,13 +209,23 @@ namespace wowsCheaterViewer
             {
                 string? getPlayerBanInfoStr = ApiClient.GetPlayerBanInfo_yuyuko(PlayerId);
                 JObject getPlayerBanInfoJo = JObject.Parse(getPlayerBanInfoStr!);
-                BanMatch_fullStr = getPlayerBanInfoJo["data"]?["voList"]?.ToString()!;
+
+                List<BanInfo> banInfoList = JsonConvert.DeserializeObject<List<BanInfo>>(getPlayerBanInfoJo["data"]?["voList"]?.ToString()!)!;
                 List<int> banMatch_matchCountList = new();
-                foreach (JToken banInfo in getPlayerBanInfoJo["data"]?["voList"]! as JArray ?? new JArray()) //将每一项的封禁匹配数加到list里
-                    banMatch_matchCountList.Add(Convert.ToInt32(banInfo["banNameNamesake"]));
+                List<string> BanMatch_fullStrList = new();
+                foreach (BanInfo banInfo in banInfoList) //将每一项的封禁匹配数加到list里
+                {
+                    banMatch_matchCountList.Add(banInfo.BanNameNamesake);
+                    BanMatch_fullStrList.Add(banInfo.GetBanInfoFullStr());
+                }
                 if (banMatch_matchCountList.Contains(1))//如果有匹配值是1的，标记为红色
                     BanColor = "Red";
                 BanMatch = string.Join(",", banMatch_matchCountList);
+                if (banInfoList.Count == 0)
+                    BanMatch_fullStr = "";
+                else
+                    BanMatch_fullStr = "可能符合条件的历史记录：" + Environment.NewLine + Environment.NewLine +
+                        string.Join(Environment.NewLine, BanMatch_fullStrList);
             }
             catch (Exception ex) { Logger.LogWrite("无法读取玩家" + PlayerId + "的ban信息，" + ex.Message); }
         }
@@ -238,7 +248,7 @@ namespace wowsCheaterViewer
         {
             try
             {
-                if (WinRate_ship == "loadFailed")
+                if (WinRate_ship == errorMessage)
                 {
                     JObject result_getplayerInfo_yuyuko = JObject.Parse(ApiClient.GetPlayerInfo_yuyuko(PlayerId)!);
                     //解析yuyuko玩家信息
@@ -355,6 +365,22 @@ namespace wowsCheaterViewer
         {
             get => _name!;
             set { _name = System.Text.RegularExpressions.Regex.Unescape(value); }//解析Unicode字符串
+        }
+    }
+
+    public class BanInfo//封禁信息子类
+    {
+        public string? BanName { get; set; }
+        public string? UserName { get; set; }
+        public string? BanTime { get; set; }
+        public string? RecordTime { get; set; }
+        public int BanNameNamesake { get; set; }
+        public string GetBanInfoFullStr()
+        {
+            return  $"封禁日期:{BanTime}," + Environment.NewLine +
+                    $"官方封禁名:{BanName}," + Environment.NewLine +
+                    $"历史用户名:{UserName}," + Environment.NewLine +
+                    $"相似用户数:{BanNameNamesake}";
         }
     }
 }

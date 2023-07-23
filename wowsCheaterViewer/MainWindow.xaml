@@ -7,6 +7,12 @@
         mc:Ignorable="d"
         Title="wowsCheaterViewer" Height="600" Width="1000" Loaded="MainWindowLoaded">
 
+    <Window.Resources>
+        <ContextMenu x:Key="ContextMenu">
+            <MenuItem Header="复制封禁信息" Name="CopyBan" Click="CopyBan_Click"/>
+        </ContextMenu>
+    </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="70"/>
@@ -124,7 +130,7 @@
                     <DataGridTemplateColumn Header="封禁匹配" Width="60">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Background="{Binding BanColor}" Text="{Binding BanMatch}">
+                                <TextBlock Background="{Binding BanColor}" Text="{Binding BanMatch}" ContextMenu="{StaticResource ContextMenu}">
                                     <TextBlock.ToolTip>
                                         <TextBlock Text="{Binding BanMatch_fullStr}"/>
                                     </TextBlock.ToolTip>
@@ -209,7 +215,7 @@
                     <DataGridTemplateColumn Header="封禁匹配" Width="60">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Background="{Binding BanColor}" Text="{Binding BanMatch}">
+                                <TextBlock Background="{Binding BanColor}" Text="{Binding BanMatch}" ContextMenu="{StaticResource ContextMenu}">
                                     <TextBlock.ToolTip>
                                         <TextBlock Text="{Binding BanMatch_fullStr}"/>
                                     </TextBlock.ToolTip>
