@@ -16,6 +16,7 @@ using Microsoft.VisualBasic;
 using System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
 using System.Net.Http;
+using System.Windows.Controls;
 
 namespace wowsCheaterViewer
 {
@@ -176,27 +177,9 @@ namespace wowsCheaterViewer
         }
         private void CopyBan_Click(object sender, RoutedEventArgs e)//复制封禁信息
         {
-            string? toCopy;
-            
-            if (this.team1.SelectedIndex >= 0)
-            {
-                PlayerInfo pl = (PlayerInfo)this.team1.Items[this.team1.SelectedIndex];
-                toCopy = pl.BanMatch_fullStr;
-            }
-            else if (this.team2.SelectedIndex >= 0)
-            {
-                PlayerInfo pl = (PlayerInfo)this.team2.Items[this.team2.SelectedIndex];
-                toCopy = pl.BanMatch_fullStr;
-            }
-            else
-            {
-                LogShow("复制封禁信息失败，未能定位到玩家所在队伍");
-                toCopy = null;
-            }
-            if(toCopy!=null)
-            {
-                System.Windows.Clipboard.SetDataObject(toCopy);
-            }
+            PlayerInfo currentPlayerInfo = (PlayerInfo)((MenuItem)e.OriginalSource).DataContext;
+            Logger.LogWrite($"即将复制封禁信息的玩家:{currentPlayerInfo.PlayerId}");
+            System.Windows.Clipboard.SetDataObject($"玩家{currentPlayerInfo.Name}{currentPlayerInfo.BanMatch_fullStr}");
         }
 
         private void ReadmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
@@ -292,12 +275,9 @@ namespace wowsCheaterViewer
         }
         private void MarkMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置
         {
-            if (this.team1.SelectedIndex >= 0)
-                Config.AddMarkInfo((PlayerInfo)this.team1.Items[this.team1.SelectedIndex]);
-            else if (this.team2.SelectedIndex >= 0)
-                Config.AddMarkInfo((PlayerInfo)this.team2.Items[this.team2.SelectedIndex]);
-            else
-                LogShow("更新玩家标记失败，未能定位到玩家所在队伍");
+            PlayerInfo currentPlayerInfo = (PlayerInfo)((System.Windows.Controls.TextBox)e.OriginalSource).DataContext;
+            Logger.LogWrite($"即将标记的玩家:{currentPlayerInfo.PlayerId}");
+            Config.AddMarkInfo(currentPlayerInfo);
         }
 
         private void WatchRepFolder()//监控rep文件夹

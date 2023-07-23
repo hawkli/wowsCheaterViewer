@@ -224,7 +224,7 @@ namespace wowsCheaterViewer
                 if (banInfoList.Count == 0)
                     BanMatch_fullStr = "";
                 else
-                    BanMatch_fullStr = "可能符合条件的历史记录：" + Environment.NewLine + Environment.NewLine +
+                    BanMatch_fullStr = "可能符合条件的封禁历史记录：" + Environment.NewLine + Environment.NewLine +
                         string.Join(Environment.NewLine, BanMatch_fullStrList);
             }
             catch (Exception ex) { Logger.LogWrite("无法读取玩家" + PlayerId + "的ban信息，" + ex.Message); }
