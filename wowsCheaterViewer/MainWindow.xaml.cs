@@ -397,9 +397,9 @@ namespace wowsCheaterViewer
                                 //修改群友信息，不影响yuyuko反馈
                                 try
                                 {
-                                    if (Config.EditPlayerInfo.ContainsKey(playerInfo.PlayerId))
+                                    if (Config.DIYPlayerInfo.ContainsKey(playerInfo.PlayerId))
                                     {
-                                        PlayerInfo playerInfoInConfig = Config.EditPlayerInfo[playerInfo.PlayerId];
+                                        PlayerInfo playerInfoInConfig = Config.DIYPlayerInfo[playerInfo.PlayerId];
                                         foreach (PropertyInfo prop in typeof(PlayerInfo).GetProperties())
                                         {
                                             object? defaultValue = prop.GetValue(new PlayerInfo());

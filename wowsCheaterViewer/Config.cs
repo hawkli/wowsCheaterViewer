@@ -28,7 +28,7 @@ namespace wowsCheaterViewer
         }
         public Dictionary<string, List<MarkInfo>> Mark { get; set; } = new Dictionary<string, List<MarkInfo>>();
         public Dictionary<string, ShipInfo> ShipInfo { get; set; } = new Dictionary<string, ShipInfo>();
-        public Dictionary<long, PlayerInfo> EditPlayerInfo { get; set; } = new Dictionary<long, PlayerInfo>();
+        public Dictionary<long, PlayerInfo> DIYPlayerInfo { get; set; } = new Dictionary<long, PlayerInfo>();
 
         //config，不写入文件的静态变量和常量
         public const string versionTag = "2023.07.17";
@@ -49,9 +49,9 @@ namespace wowsCheaterViewer
                 else
                     Update(); //不存在时说明首次运行，此时新建配置文件
                 
-                if (!EditPlayerInfo.ContainsKey(-1))//为待编辑玩家加一个样例
+                if (!DIYPlayerInfo.ContainsKey(-1))//为待编辑玩家加一个样例
                 {
-                    EditPlayerInfo[-1] = new PlayerInfo();
+                    DIYPlayerInfo[-1] = new PlayerInfo();
                     Update();
                 }
             }
