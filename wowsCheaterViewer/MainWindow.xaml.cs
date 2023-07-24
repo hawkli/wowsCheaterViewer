@@ -406,8 +406,6 @@ namespace wowsCheaterViewer
                                         {
                                             object? defaultValue = prop.GetValue(defaultPlayerInfo);
                                             object? diyValue = prop.GetValue(diyPlayerInfo);
-                                            if (prop.Name.ToLower().Contains("ship"))
-                                                ;
                                             if (diyValue != null && defaultValue != null)
                                             {
                                                 //自定义数据非空，默认值也非空，且两者不相同则编辑
