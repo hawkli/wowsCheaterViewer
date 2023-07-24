@@ -393,7 +393,29 @@ namespace wowsCheaterViewer
                             {
                                 readCount++;
                                 yuyukoGameInfo.AddYuyukoPlayerInfo(playerInfo);//添加到反馈信息
+
+                                //修改群友信息，不影响yuyuko反馈
+                                try
+                                {
+                                    if (Config.EditPlayerInfo.ContainsKey(playerInfo.PlayerId))
+                                    {
+                                        PlayerInfo playerInfoInConfig = Config.EditPlayerInfo[playerInfo.PlayerId];
+                                        foreach (PropertyInfo prop in typeof(PlayerInfo).GetProperties())
+                                        {
+                                            object? defaultValue = prop.GetValue(new PlayerInfo());
+                                            object? editValue = prop.GetValue(playerInfoInConfig);
+                                            if (!string.IsNullOrEmpty(editValue!.ToString()))
+                                                if (editValue != defaultValue)//排除空和默认值
+                                                    prop.SetValue(playerInfo, editValue);
+                                        }
+                                    }
+                                }
+                                catch(Exception ex)
+                                {
+                                    Logger.LogWrite($"编辑群友信息失败，id:{playerInfo.Id},异常:{ex.Message}");
+                                }
                                 
+
                                 if (playerInfo.Relation == 1 || playerInfo.Relation == 0)//0是用户，1是己方，2是敌方
                                     playerInfo_team1.Add(playerInfo);
                                 else
@@ -453,36 +475,36 @@ namespace wowsCheaterViewer
             playerInfo.GetMarkInfo();//获取标记信息
             playerInfo.CheckLoadFailed();//检查数据是否抓取成功，失败则换一个方案抓取数据
 
-            /*
-            //并行线程太多，反而比不并行来的慢
-            Parallel.Invoke(
-                () =>//获取pvp数据
-                {
-                    playerInfo.GetBattleInfo_withBattleType("pvp");
-                },
-                () =>//获取rank数据
-                {
-                    playerInfo.GetBattleInfo_withBattleType("rank_solo");
-                },
-                () =>//获取军团数据
-                {
-                    playerInfo.GetClanInfo();
-                },
-                () =>//获取船数据
-                {
-                    playerInfo.GetShipInfo();
-                },
-                () =>//获取ban信息
-                {
-                    playerInfo.GetBanInfo();
-                },
-                () =>//获取标记信息
-                {
-                    playerInfo.GetMarkInfo();
-                }
-            );
-            */
-            sw.Stop();
+                /*
+                //并行线程太多，反而比不并行来的慢
+                Parallel.Invoke(
+                    () =>//获取pvp数据
+                    {
+                        playerInfo.GetBattleInfo_withBattleType("pvp");
+                    },
+                    () =>//获取rank数据
+                    {
+                        playerInfo.GetBattleInfo_withBattleType("rank_solo");
+                    },
+                    () =>//获取军团数据
+                    {
+                        playerInfo.GetClanInfo();
+                    },
+                    () =>//获取船数据
+                    {
+                        playerInfo.GetShipInfo();
+                    },
+                    () =>//获取ban信息
+                    {
+                        playerInfo.GetBanInfo();
+                    },
+                    () =>//获取标记信息
+                    {
+                        playerInfo.GetMarkInfo();
+                    }
+                );
+                */
+                sw.Stop();
             Logger.LogWrite("玩家"+playerInfo.PlayerId+"查询完成，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒");
             return playerInfo;
         }

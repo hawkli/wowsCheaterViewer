@@ -364,7 +364,13 @@ namespace wowsCheaterViewer
         public string Name
         {
             get => _name!;
-            set { _name = System.Text.RegularExpressions.Regex.Unescape(value); }//解析Unicode字符串
+            set 
+            {
+                if (value != null)
+                    _name = System.Text.RegularExpressions.Regex.Unescape(value);//解析Unicode字符串
+                else
+                    _name = value;
+            }
         }
     }
 
