@@ -351,7 +351,8 @@ namespace wowsCheaterViewer
                 Stopwatch sw = new();
                 sw.Start();
                 string? exceptionMessage = null;
-                Task.Run(() =>{
+                _ = Task.Run(() =>
+                {
                     try
                     {
                         //每次读取时禁用刷新按钮
@@ -362,13 +363,13 @@ namespace wowsCheaterViewer
                             markEnemyBtn.IsEnabled = false;
                             watcher.EnableRaisingEvents = false;//先停止监控
                         });
-                        
+
                         List<PlayerInfo> playerInfo_team1 = new();
                         List<PlayerInfo> playerInfo_team2 = new();
                         int readCount = 0;
                         List<string> failedList = new();
                         List<PlayerGameInfoInRep> PlayerGameInfoList = JsonConvert.DeserializeObject<List<PlayerGameInfoInRep>>(infoJson["vehicles"]?.ToString()!)!;
-                        
+
                         //建立反馈信息的类，并补充时间和战斗类型
                         YuyukoGameInfo yuyukoGameInfo = new();
                         yuyukoGameInfo.SetTime(infoJson["dateTime"]?.ToString()!);
@@ -381,12 +382,12 @@ namespace wowsCheaterViewer
                             try
                             {
                                 Thread.Sleep(300 * i);//并行调用之间延迟300毫秒，避免360接口提示调用过多的问题
-                                playerInfo = ParsePlayer(playerInfo,PlayerGameInfoList[i]);
+                                playerInfo = ParsePlayer(playerInfo, PlayerGameInfoList[i]);
                             }
-                            catch(Exception ex)
+                            catch (Exception ex)
                             {
                                 failedList.Add(PlayerGameInfoList[i].Name);
-                                Logger.LogWrite("玩家信息读取失败，" + ex.Message + Environment.NewLine + 
+                                Logger.LogWrite("玩家信息读取失败，" + ex.Message + Environment.NewLine +
                                     JsonConvert.SerializeObject(PlayerGameInfoList[i]).ToString());
                             }
                             finally
@@ -399,22 +400,33 @@ namespace wowsCheaterViewer
                                 {
                                     if (Config.DIYPlayerInfo.ContainsKey(playerInfo.PlayerId))
                                     {
-                                        PlayerInfo playerInfoInConfig = Config.DIYPlayerInfo[playerInfo.PlayerId];
+                                        PlayerInfo diyPlayerInfo = Config.DIYPlayerInfo[playerInfo.PlayerId];
+                                        PlayerInfo defaultPlayerInfo = new ();
                                         foreach (PropertyInfo prop in typeof(PlayerInfo).GetProperties())
                                         {
-                                            object? defaultValue = prop.GetValue(new PlayerInfo());
-                                            object? editValue = prop.GetValue(playerInfoInConfig);
-                                            if (!string.IsNullOrEmpty(editValue!.ToString()))
-                                                if (editValue != defaultValue)//排除空和默认值
-                                                    prop.SetValue(playerInfo, editValue);
+                                            object? defaultValue = prop.GetValue(defaultPlayerInfo);
+                                            object? diyValue = prop.GetValue(diyPlayerInfo);
+                                            if (prop.Name.ToLower().Contains("ship"))
+                                                ;
+                                            if (diyValue != null && defaultValue != null)
+                                            {
+                                                //自定义数据非空，默认值也非空，且两者不相同则编辑
+                                                if (diyValue.ToString() != defaultValue.ToString())
+                                                    prop.SetValue(playerInfo, diyValue);
+                                            }
+                                            else if (diyValue != null && defaultValue == null)
+                                            {
+                                                //自定义数据非空，默认值为空，则编辑
+                                                prop.SetValue(playerInfo, diyValue);
+                                            }
                                         }
                                     }
                                 }
-                                catch(Exception ex)
+                                catch (Exception ex)
                                 {
-                                    Logger.LogWrite($"编辑群友信息失败，id:{playerInfo.Id},异常:{ex.Message}");
+                                    Logger.LogWrite($"自定义信息编辑失败，id:{playerInfo.Id},异常:{ex.Message}");
                                 }
-                                
+
 
                                 if (playerInfo.Relation == 1 || playerInfo.Relation == 0)//0是用户，1是己方，2是敌方
                                     playerInfo_team1.Add(playerInfo);
@@ -434,7 +446,7 @@ namespace wowsCheaterViewer
                         yuyukoGameInfo.SendInfoToYuyuko();//发送反馈信息
 
                         if (failedList.Count > 0)
-                            exceptionMessage = $"玩家{string.Join(",",failedList)}读取失败";
+                            exceptionMessage = $"玩家{string.Join(",", failedList)}读取失败";
                     }
                     catch (Exception ex)
                     {
