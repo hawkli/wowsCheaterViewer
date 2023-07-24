@@ -179,7 +179,8 @@ namespace wowsCheaterViewer
         {
             PlayerInfo currentPlayerInfo = (PlayerInfo)((MenuItem)e.OriginalSource).DataContext;
             Logger.LogWrite($"即将复制封禁信息的玩家:{currentPlayerInfo.PlayerId}");
-            System.Windows.Clipboard.SetDataObject($"玩家{currentPlayerInfo.Name}{currentPlayerInfo.BanMatch_fullStr}");
+            if (!string.IsNullOrEmpty(currentPlayerInfo.BanMatch_fullStr))
+                System.Windows.Clipboard.SetDataObject($"玩家{currentPlayerInfo.Name}{currentPlayerInfo.BanMatch_fullStr}");
         }
 
         private void ReadmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
