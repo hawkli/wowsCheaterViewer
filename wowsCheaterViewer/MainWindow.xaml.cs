@@ -16,7 +16,7 @@ using Microsoft.VisualBasic;
 using System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
 using System.Net.Http;
-using System.Windows.Documents;
+using System.Windows.Controls;
 
 namespace wowsCheaterViewer
 {
@@ -175,8 +175,14 @@ namespace wowsCheaterViewer
             Dispatcher.Invoke(() => logText.Text = message);
             Logger.LogWrite(message);
         }
-        
-        
+        private void CopyBan_Click(object sender, RoutedEventArgs e)//复制封禁信息
+        {
+            PlayerInfo currentPlayerInfo = (PlayerInfo)((MenuItem)e.OriginalSource).DataContext;
+            Logger.LogWrite($"即将复制封禁信息的玩家:{currentPlayerInfo.PlayerId}");
+            if (!string.IsNullOrEmpty(currentPlayerInfo.BanMatch_fullStr))
+                System.Windows.Clipboard.SetDataObject($"玩家{currentPlayerInfo.Name}{currentPlayerInfo.BanMatch_fullStr}");
+        }
+
         private void ReadmeEvent(object sender, RoutedEventArgs e)//使用与免责声明
         {
             ReadMeWindow window = new();
@@ -270,12 +276,9 @@ namespace wowsCheaterViewer
         }
         private void MarkMessageChangedEvent(object sender, RoutedEventArgs e)//标记变更时更新配置
         {
-            if (this.team1.SelectedIndex >= 0)
-                Config.AddMarkInfo((PlayerInfo)this.team1.Items[this.team1.SelectedIndex]);
-            else if (this.team2.SelectedIndex >= 0)
-                Config.AddMarkInfo((PlayerInfo)this.team2.Items[this.team2.SelectedIndex]);
-            else
-                LogShow("更新玩家标记失败，未能定位到玩家所在队伍");
+            PlayerInfo currentPlayerInfo = (PlayerInfo)((System.Windows.Controls.TextBox)e.OriginalSource).DataContext;
+            Logger.LogWrite($"即将标记的玩家:{currentPlayerInfo.PlayerId}");
+            Config.AddMarkInfo(currentPlayerInfo);
         }
 
         private void WatchRepFolder()//监控rep文件夹
@@ -349,7 +352,8 @@ namespace wowsCheaterViewer
                 Stopwatch sw = new();
                 sw.Start();
                 string? exceptionMessage = null;
-                Task.Run(() =>{
+                _ = Task.Run(() =>
+                {
                     try
                     {
                         //每次读取时禁用刷新按钮
@@ -360,13 +364,13 @@ namespace wowsCheaterViewer
                             markEnemyBtn.IsEnabled = false;
                             watcher.EnableRaisingEvents = false;//先停止监控
                         });
-                        
+
                         List<PlayerInfo> playerInfo_team1 = new();
                         List<PlayerInfo> playerInfo_team2 = new();
                         int readCount = 0;
                         List<string> failedList = new();
                         List<PlayerGameInfoInRep> PlayerGameInfoList = JsonConvert.DeserializeObject<List<PlayerGameInfoInRep>>(infoJson["vehicles"]?.ToString()!)!;
-                        
+
                         //建立反馈信息的类，并补充时间和战斗类型
                         YuyukoGameInfo yuyukoGameInfo = new();
                         yuyukoGameInfo.SetTime(infoJson["dateTime"]?.ToString()!);
@@ -379,19 +383,50 @@ namespace wowsCheaterViewer
                             try
                             {
                                 Thread.Sleep(300 * i);//并行调用之间延迟300毫秒，避免360接口提示调用过多的问题
-                                playerInfo = ParsePlayer(playerInfo,PlayerGameInfoList[i]);
+                                playerInfo = ParsePlayer(playerInfo, PlayerGameInfoList[i]);
                             }
-                            catch(Exception ex)
+                            catch (Exception ex)
                             {
                                 failedList.Add(PlayerGameInfoList[i].Name);
-                                Logger.LogWrite("玩家信息读取失败，" + ex.Message + Environment.NewLine + 
+                                Logger.LogWrite("玩家信息读取失败，" + ex.Message + Environment.NewLine +
                                     JsonConvert.SerializeObject(PlayerGameInfoList[i]).ToString());
                             }
                             finally
                             {
                                 readCount++;
                                 yuyukoGameInfo.AddYuyukoPlayerInfo(playerInfo);//添加到反馈信息
-                                
+
+                                //修改群友信息，不影响yuyuko反馈
+                                try
+                                {
+                                    if (Config.DIYPlayerInfo.ContainsKey(playerInfo.PlayerId))
+                                    {
+                                        PlayerInfo diyPlayerInfo = Config.DIYPlayerInfo[playerInfo.PlayerId];
+                                        PlayerInfo defaultPlayerInfo = new ();
+                                        foreach (PropertyInfo prop in typeof(PlayerInfo).GetProperties())
+                                        {
+                                            object? defaultValue = prop.GetValue(defaultPlayerInfo);
+                                            object? diyValue = prop.GetValue(diyPlayerInfo);
+                                            if (diyValue != null && defaultValue != null)
+                                            {
+                                                //自定义数据非空，默认值也非空，且两者不相同则编辑
+                                                if (diyValue.ToString() != defaultValue.ToString())
+                                                    prop.SetValue(playerInfo, diyValue);
+                                            }
+                                            else if (diyValue != null && defaultValue == null)
+                                            {
+                                                //自定义数据非空，默认值为空，则编辑
+                                                prop.SetValue(playerInfo, diyValue);
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LogWrite($"自定义信息编辑失败，id:{playerInfo.Id},异常:{ex.Message}");
+                                }
+
+
                                 if (playerInfo.Relation == 1 || playerInfo.Relation == 0)//0是用户，1是己方，2是敌方
                                     playerInfo_team1.Add(playerInfo);
                                 else
@@ -410,7 +445,7 @@ namespace wowsCheaterViewer
                         yuyukoGameInfo.SendInfoToYuyuko();//发送反馈信息
 
                         if (failedList.Count > 0)
-                            exceptionMessage = $"玩家{string.Join(",",failedList)}读取失败";
+                            exceptionMessage = $"玩家{string.Join(",", failedList)}读取失败";
                     }
                     catch (Exception ex)
                     {
@@ -451,41 +486,42 @@ namespace wowsCheaterViewer
             playerInfo.GetMarkInfo();//获取标记信息
             playerInfo.CheckLoadFailed();//检查数据是否抓取成功，失败则换一个方案抓取数据
 
-            /*
-            //并行线程太多，反而比不并行来的慢
-            Parallel.Invoke(
-                () =>//获取pvp数据
-                {
-                    playerInfo.GetBattleInfo_withBattleType("pvp");
-                },
-                () =>//获取rank数据
-                {
-                    playerInfo.GetBattleInfo_withBattleType("rank_solo");
-                },
-                () =>//获取军团数据
-                {
-                    playerInfo.GetClanInfo();
-                },
-                () =>//获取船数据
-                {
-                    playerInfo.GetShipInfo();
-                },
-                () =>//获取ban信息
-                {
-                    playerInfo.GetBanInfo();
-                },
-                () =>//获取标记信息
-                {
-                    playerInfo.GetMarkInfo();
-                }
-            );
-            */
-            sw.Stop();
+                /*
+                //并行线程太多，反而比不并行来的慢
+                Parallel.Invoke(
+                    () =>//获取pvp数据
+                    {
+                        playerInfo.GetBattleInfo_withBattleType("pvp");
+                    },
+                    () =>//获取rank数据
+                    {
+                        playerInfo.GetBattleInfo_withBattleType("rank_solo");
+                    },
+                    () =>//获取军团数据
+                    {
+                        playerInfo.GetClanInfo();
+                    },
+                    () =>//获取船数据
+                    {
+                        playerInfo.GetShipInfo();
+                    },
+                    () =>//获取ban信息
+                    {
+                        playerInfo.GetBanInfo();
+                    },
+                    () =>//获取标记信息
+                    {
+                        playerInfo.GetMarkInfo();
+                    }
+                );
+                */
+                sw.Stop();
             Logger.LogWrite("玩家"+playerInfo.PlayerId+"查询完成，耗时" + (sw.ElapsedMilliseconds / 1000).ToString() + "秒");
             return playerInfo;
         }
 
         [System.Text.RegularExpressions.GeneratedRegex("(?<={\"matchGroup\").*(?=\"mapBorder\")")]
         private static partial System.Text.RegularExpressions.Regex MatchInfoJsonInRep();
+
     }
 }
